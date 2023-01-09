@@ -1,3 +1,5 @@
+# created a class to build a system and modules (based on the docs: https://nidaqmx-python.readthedocs.io/en/latest/)
+
 class nidaqmxWrappers:
 
     def __init__(self):
@@ -33,7 +35,6 @@ class nidaqmxWrappers:
 
             print(device)
 
-
     def printDeviceName(self):
 
         system = self.system
@@ -48,14 +49,12 @@ class nidaqmxWrappers:
             for physChannel in device.ai_physical_chans:
 
                 print(physChannel.name)
-                print(type(physChannel.name))
 
-            # here we are printing analog inputs (ai) phyiscal channels
+            # here we are printing analog outputs (ao) phyiscal channels
 
             for physChannel in device.ao_physical_chans:
 
                 print(physChannel.name)
-                print(type(physChannel.name))
 
 
     def returnTaskObj(self):
@@ -88,9 +87,6 @@ class nidaqmxWrappers:
         return taskObj
 
 
-        
-
-
 
 class test:
 
@@ -101,8 +97,6 @@ class test:
         print(' ')
         print('to get nidaqObj, use:')
         print('nidaqObj = testObj.getNidaqObj()')
-
-
 
 
     def testPrintDevices(self):
@@ -136,6 +130,8 @@ class test:
         print('test complete')
 
         print(' ')
+
+
 
     def getNidaqObj(self):
 
