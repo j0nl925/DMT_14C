@@ -6,6 +6,7 @@ class nidaqmxWrappers:
 
         print('welcome to nidaqmxWrapper class')
 
+        #everytime a nidaqmxWrappers class object is initiatde, the below functions will be called 
         self.buildNIDAQmxModule()
         self.buildSystem()
 
@@ -157,7 +158,7 @@ class test:
         print(type(taskObj))
         print(taskObj)
 
-        taskObj.ai_channels.add_ai_thrmstr_chan_vex('tempSensor1/ai7')
+        taskObj.ai_channels.add_ai_thrmstr_chan_vex('Temperature_Measurement/ai0')
         reading = taskObj.read()
 
         print('first read')
@@ -173,9 +174,7 @@ class test:
             print(type(reading))
 
         taskObj.close()
-
-        #taskObj.ai_channels.add_ai_thrmstr_chan_vex('tempSensor1/ai6')
-        #taskObj.read()
+        
 
     def testReadExistingTask(self):
 
@@ -207,18 +206,11 @@ class test:
 
             # the following part is manual, you have to set it properly in nimax
 
-            if task.name == 'MyTemperatureTask':
+            if task.name == 'thermocouple1':
                 #task.start()
                 taskValue = task.read()
                 print(type(taskValue))
                 print(taskValue)
-
-            if task.name == 'moduleATemperatureReading':
-                #task.start()
-                taskValue = task.read()
-                print(type(taskValue))
-                print(taskValue)
-
 
             task.close()
 
