@@ -33,6 +33,8 @@ def get_device_model(device_names):
 
 def readDAQData(type, device_name, no_of_channels, sample_rate, num_samples, voltage_min, voltage_max):
 
+    print(type, device_name, no_of_channels, sample_rate, num_samples, voltage_min, voltage_max)
+
     # Create instance of nidaqmxWrappers class
     nidaq = pythonNIDAQ.nidaqmxWrappers()
 
@@ -41,12 +43,15 @@ def readDAQData(type, device_name, no_of_channels, sample_rate, num_samples, vol
 
     # Add channels to task
     if type == 'voltage':
-        task.ai_channels.add_ai_voltage_chan(device_name + '/ai0:' + str(no_of_channels - 1), min_val = voltage_min, max_val = voltage_max)
+        for i in range(0,no_of_channels):
+            task.ai_channels.add_ai_voltage_chan(device_name + '/ai' + str(i), min_val = voltage_min, max_val = voltage_max)
     elif type == 'temperature':
-        task.ai_channels.add_ai_thrmcpl_chan(device_name + '/ai0:' + str(no_of_channels - 1), units=nidaqmx.constants.TemperatureUnits.DEG_C,
-                                            thermocouple_type=nidaqmx.constants.ThermocoupleType.K)
+        for i in range(0, no_of_channels):
+            task.ai_channels.add_ai_thrmcpl_chan(device_name + '/ai' + str(i), units=nidaqmx.constants.TemperatureUnits.DEG_C,
+                                                thermocouple_type=nidaqmx.constants.ThermocoupleType.K)
     elif type == 'strain':
-        task.ai_channels.add_ai_force_bridge_two_point_lin_chan(device_name + '/ai0:' + str(no_of_channels - 1), min_val = 0, max_val = 0.005, physical_units=nidaqmx.constants.BridgePhysicalUnits.KILOGRAM_FORCE, #not sure if these configs are correct
+        for i in range(0, no_of_channels):
+            task.ai_channels.add_ai_force_bridge_two_point_lin_chan(device_name + '/ai' + str(i), min_val = 0, max_val = 0.005, physical_units=nidaqmx.constants.BridgePhysicalUnits.KILOGRAM_FORCE, #not sure if these configs are correct
                                                              electrical_units=nidaqmx.constants.BridgeElectricalUnits.MILLIVOLTS_PER_VOLT, bridge_config=nidaqmx.constants.BridgeConfiguration.FULL_BRIDGE)
 
     # Set sample rate
@@ -112,6 +117,7 @@ def update_subplots(df, window_size=100):
                     labels.append(label)
                 else:
                     strain_lines[col].set_data(x, df[col][num-window_size:num])
+
         # update the x and y axis limits
         ax1.set_ylim(0,5)
         ax1.relim()
