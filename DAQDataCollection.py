@@ -10,9 +10,26 @@ import tkinter as Tk
 # the following script requires manual setup of virtual hardware in NI MAX software 
 # to do: create a script which allows you to input hardware code name, and then create the virtual hardware automatically
     # and then create channels for each of the hardware and then create a task for each of the hardware
+
 # to do: figure out if configurations of the hardware is correct
+# to do: write a function to convert output signals to physical units (pressure, temperature, force)
 # to do: create a function to smoothen out the data points
 # to do: create a GUI to press run and display the data
+
+
+def get_device_model(device_names):
+    """
+    Returns the model of an NI DAQ device with the specified name.
+    """
+    for device_name in device_names:
+        try:
+            system = nidaqmx.system.System.local()
+            for device in system.devices:
+                if device.name == device_name:
+                    print((f'{device_name}: {device.product_type}'))
+        except nidaqmx.DaqError as err:
+            print(f'Error: {err}')
+
 
 def readDAQData(type, device_name, no_of_channels, sample_rate, num_samples, voltage_min, voltage_max):
 
@@ -57,6 +74,9 @@ def update_subplots(df, window_size=100):
     temperature_lines = {}
     strain_lines = {}
 
+    # Create an empty list to hold the legend handles and labels
+    handles, labels = [], []
+
     def update(num):
         nonlocal x
         num=num+window_size
@@ -65,16 +85,25 @@ def update_subplots(df, window_size=100):
             if col.startswith('Voltage'):
                 if col not in voltage_lines:
                     voltage_lines[col], = ax1.plot(x, df[col][num-window_size:num], label=col)
+                    handles.append(voltage_lines[col])
+                    label  = 'ai' + col[-1] #to get the channel number
+                    labels.append(label)
                 else:
                     voltage_lines[col].set_data(x, df[col][num-window_size:num])
             elif col.startswith('Temperature'):
                 if col not in temperature_lines:
                     temperature_lines[col], = ax2.plot(x, df[col][num-window_size:num], label=col)
+                    handles.append(temperature_lines[col])
+                    label  = 'ai' + col[-1] #to get the channel number
+                    labels.append(label)
                 else:
                     temperature_lines[col].set_data(x, df[col][num-window_size:num])
             elif col.startswith('Strain'):
                 if col not in strain_lines:
                     strain_lines[col], = ax3.plot(x, df[col][num-window_size:num], label=col)
+                    handles.append(strain_lines[col])
+                    label  = 'ai' + col[-1] #to get the channel number
+                    labels.append(label)
                 else:
                     strain_lines[col].set_data(x, df[col][num-window_size:num])
         # update the x and y axis limits
@@ -85,6 +114,14 @@ def update_subplots(df, window_size=100):
         ax3.relim()
         ax3.autoscale_view()
 
+        # print(handles)
+        # print(labels)
+
+        # Add the legend to the figure
+        ax1.legend(handles[:len(voltage_lines)], labels[:len(voltage_lines)])
+        ax2.legend(handles[len(voltage_lines):len(voltage_lines)+len(temperature_lines)], labels[len(voltage_lines):len(voltage_lines)+len(temperature_lines)])
+        ax3.legend(handles[len(voltage_lines)+len(temperature_lines):], labels[len(voltage_lines)+len(temperature_lines):])
+
     ani = FuncAnimation(fig, update, frames=range(1, len(df)-window_size+1), repeat=True)
     plt.show()
 
@@ -92,6 +129,8 @@ def update_subplots(df, window_size=100):
 def main(no_of_voltage_channels, voltage_sampling_rate, no_of_voltage_samples, min_voltage, max_voltage,
         no_of_temperature_channels, temperature_sampling_rate, no_of_temperature_samples,
          no_of_strain_channels, strain_sampling_rate, no_of_strain_samples):
+
+    get_device_model(['Voltage_Measurement', 'Strain_Measurement', 'Temperature_Measurement'])
     
     # Create empty pandas dataframe to store data
     df = pd.DataFrame(columns=['Voltage Measurement 0', 'Voltage Measurement 1',

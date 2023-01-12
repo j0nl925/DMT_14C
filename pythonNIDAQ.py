@@ -4,8 +4,6 @@ class nidaqmxWrappers:
 
     def __init__(self):
 
-        print('welcome to nidaqmxWrapper class')
-
         #everytime a nidaqmxWrappers class object is initiatde, the below functions will be called 
         self.buildNIDAQmxModule()
         self.buildSystem()
@@ -23,10 +21,6 @@ class nidaqmxWrappers:
 
         import nidaqmx
         self.nidaqmx = nidaqmx
-
-        print(' ')
-        print('NIDAQmx module imported, use self.nidaqmx to access it')
-        print(' ')
 
     def printDevices(self):
 
@@ -326,6 +320,3 @@ def printHelp():
     print('to load the nidaqmxWrappers object use:')
 
     print('nidaqmxWrapperObj = self.getNidaqmxWrappersObj()')
-
-
-printHelp()
