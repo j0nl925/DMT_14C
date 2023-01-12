@@ -3,13 +3,16 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import pythonNIDAQ
 import nidaqmx
+
 from tkinter import Label, Button
 import tkinter as Tk
 
 # the following script requires manual setup of virtual hardware in NI MAX software 
 # to do: create a script which allows you to input hardware code name, and then create the virtual hardware automatically
-# to do: create a better plotting function - currently it is very slow and only plots on one axes on one figure
+    # and then create channels for each of the hardware and then create a task for each of the hardware
+# to do: figure out if configurations of the hardware is correct
 # to do: create a function to smoothen out the data points
+# to do: create a GUI to press run and display the data
 
 def readDAQData(type, device_name, no_of_channels, sample_rate, num_samples, voltage_min, voltage_max):
 
@@ -39,40 +42,52 @@ def readDAQData(type, device_name, no_of_channels, sample_rate, num_samples, vol
 
     return data
 
-def update_plot():
-    # read data from file
-    df = pd.read_csv('data.csv', index_col=0)
 
-    #plot the data
-    plt.plot(df['Voltage Measurement 0'], color='red')
-    plt.plot(df['Voltage Measurement 1'], color='blue')
-    plt.plot(df['Voltage Measurement 2'], color='green')
-    plt.plot(df['Voltage Measurement 3'], color='yellow')
-    plt.title('Voltage Measurements')
-    plt.xlabel('Time')
-    plt.ylabel('Voltage')
+def update_subplots(df, window_size=100):
+    # Create the figure and the subplots
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1)
+    fig.tight_layout()
+    ax1.set_title('Voltage')
+    ax2.set_title('Temperature')
+    ax3.set_title('Strain')
+    plt.xlabel('Time (s)')
+    x=df.index[-window_size:]
+    # Initialize the lines for each subplot
+    voltage_lines = {}
+    temperature_lines = {}
+    strain_lines = {}
 
-    plt.plot(df['Temperature Measurement 0'], color='red')
-    plt.plot(df['Temperature Measurement 1'], color='blue')
-    plt.title('Temperature Measurements')
-    plt.xlabel('Time')
-    plt.ylabel('Temperature')
+    def update(num):
+        nonlocal x
+        num=num+window_size
+        x=df.index[num-window_size:num]
+        for col in df.columns:
+            if col.startswith('Voltage'):
+                if col not in voltage_lines:
+                    voltage_lines[col], = ax1.plot(x, df[col][num-window_size:num], label=col)
+                else:
+                    voltage_lines[col].set_data(x, df[col][num-window_size:num])
+            elif col.startswith('Temperature'):
+                if col not in temperature_lines:
+                    temperature_lines[col], = ax2.plot(x, df[col][num-window_size:num], label=col)
+                else:
+                    temperature_lines[col].set_data(x, df[col][num-window_size:num])
+            elif col.startswith('Strain'):
+                if col not in strain_lines:
+                    strain_lines[col], = ax3.plot(x, df[col][num-window_size:num], label=col)
+                else:
+                    strain_lines[col].set_data(x, df[col][num-window_size:num])
+        # update the x and y axis limits
+        ax1.relim()
+        ax1.autoscale_view()
+        ax2.relim()
+        ax2.autoscale_view()
+        ax3.relim()
+        ax3.autoscale_view()
 
-    plt.plot(df['Strain Measurement 0'], color='red')
-    plt.plot(df['Strain Measurement 1'], color='blue')
-    plt.title('Strain Measurements')
-    plt.xlabel('Time')
-    plt.ylabel('Strain')
-
-    plt.pause(0.0001)
-
-def plotDAQAnimated():
-    fig, axs = plt.subplots(nrows=3, figsize=(10, 6),
-                       gridspec_kw={'width_ratios': [1], 'wspace': 0.1, 'hspace': 0.4})
-
-    # create the animation
-    ani = FuncAnimation(fig, update_plot, interval=1000)
+    ani = FuncAnimation(fig, update, frames=range(1, len(df)-window_size+1), repeat=True)
     plt.show()
+
 
 def main(no_of_voltage_channels, voltage_sampling_rate, no_of_voltage_samples, min_voltage, max_voltage,
         no_of_temperature_channels, temperature_sampling_rate, no_of_temperature_samples,
@@ -103,4 +118,4 @@ def main(no_of_voltage_channels, voltage_sampling_rate, no_of_voltage_samples, m
         for i in range(0, len(strain_data)):
             df['Strain Measurement ' + str(i)] = pd.DataFrame(strain_data[i]) 
 
-        update_plot()
+        update_subplots(df, window_size=100)
