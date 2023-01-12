@@ -61,9 +61,15 @@ def readDAQData(type, device_name, no_of_channels, sample_rate, num_samples, vol
 
 
 def update_subplots(df, window_size=100):
+
     # Create the figure and the subplots
-    fig, (ax1, ax2, ax3) = plt.subplots(3, 1)
+    fig = plt.figure(figsize=(12, 8))
+    gs = fig.add_gridspec(3, 1)
+    ax1 = fig.add_subplot(gs[0, 0])
+    ax2 = fig.add_subplot(gs[1, 0])
+    ax3 = fig.add_subplot(gs[2, 0])
     fig.tight_layout()
+
     ax1.set_title('Voltage')
     ax2.set_title('Temperature')
     ax3.set_title('Strain')
@@ -107,8 +113,9 @@ def update_subplots(df, window_size=100):
                 else:
                     strain_lines[col].set_data(x, df[col][num-window_size:num])
         # update the x and y axis limits
+        ax1.set_ylim(0,5)
         ax1.relim()
-        ax1.autoscale_view()
+        ax1.autoscale_view(scalex=True, scaley=False)
         ax2.relim()
         ax2.autoscale_view()
         ax3.relim()
@@ -118,9 +125,9 @@ def update_subplots(df, window_size=100):
         # print(labels)
 
         # Add the legend to the figure
-        ax1.legend(handles[:len(voltage_lines)], labels[:len(voltage_lines)])
-        ax2.legend(handles[len(voltage_lines):len(voltage_lines)+len(temperature_lines)], labels[len(voltage_lines):len(voltage_lines)+len(temperature_lines)])
-        ax3.legend(handles[len(voltage_lines)+len(temperature_lines):], labels[len(voltage_lines)+len(temperature_lines):])
+        ax1.legend(handles[:len(voltage_lines)], labels[:len(voltage_lines)], bbox_to_anchor=(0, 1), loc='upper left', borderaxespad=0)
+        ax2.legend(handles[len(voltage_lines):len(voltage_lines)+len(temperature_lines)], labels[len(voltage_lines):len(voltage_lines)+len(temperature_lines)], bbox_to_anchor=(0, 1), loc='upper left', borderaxespad=0)
+        ax3.legend(handles[len(voltage_lines)+len(temperature_lines):], labels[len(voltage_lines)+len(temperature_lines):], bbox_to_anchor=(0, 1), loc='upper left', borderaxespad=0)
 
     ani = FuncAnimation(fig, update, frames=range(1, len(df)-window_size+1), repeat=True)
     plt.show()
