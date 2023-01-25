@@ -33,8 +33,6 @@ def get_device_model(device_names):
 
 def readDAQData(type, device_name, no_of_channels, sample_rate, num_samples, voltage_min, voltage_max):
 
-    print(type, device_name, no_of_channels, sample_rate, num_samples, voltage_min, voltage_max)
-
     # Create instance of nidaqmxWrappers class
     nidaq = pythonNIDAQ.nidaqmxWrappers()
 
@@ -65,7 +63,7 @@ def readDAQData(type, device_name, no_of_channels, sample_rate, num_samples, vol
     return data
 
 
-def update_subplots(df, window_size=100):
+def update_subplots(df, window_size_voltage, window_size_temperature, window_size_strain):
 
     # Create the figure and the subplots
     fig = plt.figure(figsize=(12, 8))
@@ -79,7 +77,11 @@ def update_subplots(df, window_size=100):
     ax2.set_title('Temperature')
     ax3.set_title('Strain')
     plt.xlabel('Time (s)')
-    x=df.index[-window_size:]
+
+    x_voltage=df.index[-window_size_voltage:]
+    x_temperature=df.index[-window_size_temperature:]
+    x_strain=df.index[-window_size_strain:]
+
     # Initialize the lines for each subplot
     voltage_lines = {}
     temperature_lines = {}
@@ -89,34 +91,41 @@ def update_subplots(df, window_size=100):
     handles, labels = [], []
 
     def update(num):
-        nonlocal x
-        num=num+window_size
-        x=df.index[num-window_size:num]
+        nonlocal x_voltage, x_temperature, x_strain
+
+        num_voltage=num_voltage+window_size_voltage
+        num_temperature=num_temperature+window_size_temperature
+        num_strain=num_strain+window_size_strain
+
+        x_voltage=df.index[num-window_size_voltage:num_voltage]
+        x_temperature=df.index[num-window_size_temperature:num_temperature]
+        x_strain=df.index[num-window_size_strain:num_strain]
+
         for col in df.columns:
             if col.startswith('Voltage'):
                 if col not in voltage_lines:
-                    voltage_lines[col], = ax1.plot(x, df[col][num-window_size:num], label=col)
+                    voltage_lines[col], = ax1.plot(x_voltage, df[col][num-window_size_voltage:num], label=col)
                     handles.append(voltage_lines[col])
                     label  = 'ai' + col[-1] #to get the channel number
                     labels.append(label)
                 else:
-                    voltage_lines[col].set_data(x, df[col][num-window_size:num])
+                    voltage_lines[col].set_data(x_voltage, df[col][num-window_size_voltage:num])
             elif col.startswith('Temperature'):
                 if col not in temperature_lines:
-                    temperature_lines[col], = ax2.plot(x, df[col][num-window_size:num], label=col)
+                    temperature_lines[col], = ax2.plot(x_temperature, df[col][num-window_size_temperature:num], label=col)
                     handles.append(temperature_lines[col])
                     label  = 'ai' + col[-1] #to get the channel number
                     labels.append(label)
                 else:
-                    temperature_lines[col].set_data(x, df[col][num-window_size:num])
+                    temperature_lines[col].set_data(x_temperature, df[col][num-window_size_temperature:num])
             elif col.startswith('Strain'):
                 if col not in strain_lines:
-                    strain_lines[col], = ax3.plot(x, df[col][num-window_size:num], label=col)
+                    strain_lines[col], = ax3.plot(x_strain, df[col][num-window_size_strain:num], label=col)
                     handles.append(strain_lines[col])
                     label  = 'ai' + col[-1] #to get the channel number
                     labels.append(label)
                 else:
-                    strain_lines[col].set_data(x, df[col][num-window_size:num])
+                    strain_lines[col].set_data(x_strain, df[col][num-window_size_strain:num])
 
         # update the x and y axis limits
         ax1.set_ylim(0,5)
@@ -130,12 +139,12 @@ def update_subplots(df, window_size=100):
         # print(handles)
         # print(labels)
 
-        # Add the legend to the figure
+        #Add the legend to the figure
         ax1.legend(handles[:len(voltage_lines)], labels[:len(voltage_lines)], bbox_to_anchor=(0, 1), loc='upper left', borderaxespad=0)
         ax2.legend(handles[len(voltage_lines):len(voltage_lines)+len(temperature_lines)], labels[len(voltage_lines):len(voltage_lines)+len(temperature_lines)], bbox_to_anchor=(0, 1), loc='upper left', borderaxespad=0)
         ax3.legend(handles[len(voltage_lines)+len(temperature_lines):], labels[len(voltage_lines)+len(temperature_lines):], bbox_to_anchor=(0, 1), loc='upper left', borderaxespad=0)
 
-    ani = FuncAnimation(fig, update, frames=range(1, len(df)-window_size+1), repeat=True)
+    ani = FuncAnimation(fig, update, frames=range(1, len(df)-window_size_voltage+1), repeat=True)
     plt.show()
 
 
@@ -170,4 +179,4 @@ def main(no_of_voltage_channels, voltage_sampling_rate, no_of_voltage_samples, m
         for i in range(0, len(strain_data)):
             df['Strain Measurement ' + str(i)] = pd.DataFrame(strain_data[i]) 
 
-        update_subplots(df, window_size=100)
+        update_subplots(df, window_size_voltage = 500, window_size_temperature = 100, window_size_strain = 500)
