@@ -5,7 +5,7 @@ import time
     # 1. Add a function to check the temperature and then start the ramp up or ramp down using nidaqmx
     # 2. Define Profiles for ramp up, ramp down, constant speed, stop (do we want to do this in GUI or in the code?)
 
-#turn all of the above into a class called VESC and then call the functions from the GUI
+#need to call these functions from the GUI in the main code
 class VESC():
     def __init__(self, port):
         self.vesc = pyvesc.VESC(port)
