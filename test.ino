@@ -29,6 +29,8 @@ const uint8_t LINEAR_LIMIT_SWITCH = 7;
 const uint8_t ROTARY_STEP_PIN = 3;
 const uint8_t ROTARY_DIR_PIN = 4;
 const uint8_t ROTARY_LIMIT_SWITCH = 8;
+const uint8_t rotaryEncoderA = 2;
+const uint8_t rotaryEncoderB = 9;
 
 // Define the resolution of the linear and rotary actuators
 const float LINEAR_RESOLUTION = 1.8;
@@ -55,6 +57,9 @@ const int ROTARY_STEPS = ROTARY_STROKE * ROTARY_STEPS_PER_DEGREE;
 // Define the linear and rotary actuators
 AccelStepper linearActuator(AccelStepper::DRIVER, LINEAR_STEP_PIN, LINEAR_DIR_PIN);
 AccelStepper rotaryActuator(AccelStepper::DRIVER, ROTARY_STEP_PIN, ROTARY_DIR_PIN);
+
+// Define the rotary encoder
+Encoder rotaryEncoder(rotaryEncoderA, rotaryEncoderB);
 
 // Define initial positions for the linear and rotary actuators
 int rotPosition = 0;
@@ -92,11 +97,11 @@ void loop() {
   rotaryActuator.run();
 
   // check if limit switches are pressed and move to zero position if necessary
-  if (digitalRead(LINEAR_LIMIT_SWITCH) == LOW) {
+  if (digitalRead(LINEAR_LIMIT_SWITCH) == HIGH) {
     linearActuator.moveTo(0);
     linearActuator.runToPosition();
   }
-  if (digitalRead(ROTARY_LIMIT_SWITCH) == LOW) {
+  if (digitalRead(ROTARY_LIMIT_SWITCH) == HIGH) {
     rotaryActuator.moveTo(0);
     rotaryActuator.runToPosition();
   }
