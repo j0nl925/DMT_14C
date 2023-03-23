@@ -1,182 +1,211 @@
-import pandas as pd
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
-import pythonNIDAQ
+# I want to create a script to read voltage channels from a DAQ and plot them in real time
+
 import nidaqmx
+import matplotlib.pyplot as plt
+import numpy as np
+import time
+import datetime
+import pandas as pd
+from matplotlib import animation
+import os
 
-from tkinter import Label, Button
-import tkinter as Tk
+def readDAQData(device_name, sampling_rate, samples_per_channel, load_cell_excitation_voltage=5,
+                voltage_channels=[], thermocouple_channels=[], load_cell_channels=[]):
 
-# the following script requires manual setup of virtual hardware in NI MAX software 
-# to do: create a script which allows you to input hardware code name, and then create the virtual hardware automatically
-    # and then create channels for each of the hardware and then create a task for each of the hardware
+    # create the DAQ task
+    with nidaqmx.Task() as task:
 
-# to do: figure out if configurations of the hardware is correct
-# to do: write a function to convert output signals to physical units (pressure, temperature, force)
-# to do: create a function to smoothen out the data points
-# to do: create a GUI to press run and display the data
+        # add the voltage channels to the task
+        for channel in voltage_channels:
+            task.ai_channels.add_ai_voltage_chan("{}/{}".format(device_name, channel),
+                                                min_val=-10.0, max_val=10.0)
 
+        # add the thermocouple channels to the task
+        for channel in thermocouple_channels:
+            task.ai_channels.add_ai_thrmcpl_chan("{}/{}".format(device_name, channel),
+                                                 thermocouple_type=nidaqmx.constants.ThermocoupleType.K,
+                                                 cjc_source=nidaqmx.constants.CJCSource.CONSTANT_USER_VALUE,
+                                                 cjc_val=25.0)
 
-def get_device_model(device_names):
-    """
-    Returns the model of an NI DAQ device with the specified name.
-    """
-    for device_name in device_names:
-        try:
-            system = nidaqmx.system.System.local()
-            for device in system.devices:
-                if device.name == device_name:
-                    print((f'{device_name}: {device.product_type}'))
-        except nidaqmx.DaqError as err:
-            print(f'Error: {err}')
+        # add the load cell channels to the task
+        for channel in load_cell_channels:
+            task.ai_channels.add_ai_voltage_chan("{}/{}".format(device_name, channel),
+                                                min_val=-load_cell_excitation_voltage, max_val=load_cell_excitation_voltage)
 
+        # convert sampling_rate and samples_per_channel to appropriate data types
+        sampling_rate = np.float64(sampling_rate)
+        samples_per_channel = np.uint64(samples_per_channel)
 
-def readDAQData(type, device_name, no_of_channels, sample_rate, num_samples, voltage_min, voltage_max):
+        # configure the timing of the task
+        task.timing.cfg_samp_clk_timing(sampling_rate, samps_per_chan=samples_per_channel)
 
-    # Create instance of nidaqmxWrappers class
-    nidaq = pythonNIDAQ.nidaqmxWrappers()
+        # read the data from the task
+        data = task.read(number_of_samples_per_channel=samples_per_channel)
 
-    # Create task
-    task = nidaq.returnTaskObj()
+        # create a dictionary that maps the actual channel names to the column data
+        channel_data = {}
+        for i, channel in enumerate(voltage_channels):
+            channel_data[channel] = data[i]
+        for i, channel in enumerate(thermocouple_channels):
+            channel_data[channel] = data[i + len(voltage_channels)]
+        for i, channel in enumerate(load_cell_channels):
+            channel_data[channel] = data[i + len(voltage_channels) + len(thermocouple_channels)]
 
-    # Add channels to task
-    if type == 'voltage':
-        for i in range(0,no_of_channels):
-            task.ai_channels.add_ai_voltage_chan(device_name + '/ai' + str(i), min_val = voltage_min, max_val = voltage_max)
-    elif type == 'temperature':
-        for i in range(0, no_of_channels):
-            task.ai_channels.add_ai_thrmcpl_chan(device_name + '/ai' + str(i), units=nidaqmx.constants.TemperatureUnits.DEG_C,
-                                                thermocouple_type=nidaqmx.constants.ThermocoupleType.K)
-    elif type == 'strain':
-        for i in range(0, no_of_channels):
-            task.ai_channels.add_ai_force_bridge_two_point_lin_chan(device_name + '/ai' + str(i), min_val = 0, max_val = 0.005, physical_units=nidaqmx.constants.BridgePhysicalUnits.KILOGRAM_FORCE, #not sure if these configs are correct
-                                                             electrical_units=nidaqmx.constants.BridgeElectricalUnits.MILLIVOLTS_PER_VOLT, bridge_config=nidaqmx.constants.BridgeConfiguration.FULL_BRIDGE)
+        return channel_data
 
-    # Set sample rate
-    task.timing.cfg_samp_clk_timing(sample_rate, sample_mode=nidaqmx.constants.AcquisitionType.CONTINUOUS)
+def voltage_to_force(data, capacity = 5, rated_output = 1.0):
+    A = capacity / rated_output
+    force_data = {}
+    for channel_name, channel_data in data.items():
+        force_data[channel_name] = [A * voltage for voltage in channel_data]
+    return force_data
 
-    task.start()
-    data = task.read(num_samples)
-    task.stop()
-    task.close()
+def plotData(axs, data, sampling_rate, window_size, voltage_channels = [], temperature_channels = [], strain_channels = []):
+    # Clear the existing plots
+    for ax in axs:
+        ax.clear()
 
-    return data
-
-
-def update_subplots(df, window_size_voltage, window_size_temperature, window_size_strain):
-
-    # Create the figure and the subplots
-    fig = plt.figure(figsize=(12, 8))
-    gs = fig.add_gridspec(3, 1)
-    ax1 = fig.add_subplot(gs[0, 0])
-    ax2 = fig.add_subplot(gs[1, 0])
-    ax3 = fig.add_subplot(gs[2, 0])
-    fig.tight_layout()
-
-    ax1.set_title('Voltage')
-    ax2.set_title('Temperature')
-    ax3.set_title('Strain')
-    plt.xlabel('Time (s)')
-
-    x_voltage=df.index[-window_size_voltage:]
-    x_temperature=df.index[-window_size_temperature:]
-    x_strain=df.index[-window_size_strain:]
-
-    # Initialize the lines for each subplot
-    voltage_lines = {}
-    temperature_lines = {}
-    strain_lines = {}
-
-    # Create an empty list to hold the legend handles and labels
-    handles, labels = [], []
-
-    def update(num):
-        nonlocal x_voltage, x_temperature, x_strain
-
-        num_voltage=num_voltage+window_size_voltage
-        num_temperature=num_temperature+window_size_temperature
-        num_strain=num_strain+window_size_strain
-
-        x_voltage=df.index[num-window_size_voltage:num_voltage]
-        x_temperature=df.index[num-window_size_temperature:num_temperature]
-        x_strain=df.index[num-window_size_strain:num_strain]
-
-        for col in df.columns:
-            if col.startswith('Voltage'):
-                if col not in voltage_lines:
-                    voltage_lines[col], = ax1.plot(x_voltage, df[col][num-window_size_voltage:num], label=col)
-                    handles.append(voltage_lines[col])
-                    label  = 'ai' + col[-1] #to get the channel number
-                    labels.append(label)
-                else:
-                    voltage_lines[col].set_data(x_voltage, df[col][num-window_size_voltage:num])
-            elif col.startswith('Temperature'):
-                if col not in temperature_lines:
-                    temperature_lines[col], = ax2.plot(x_temperature, df[col][num-window_size_temperature:num], label=col)
-                    handles.append(temperature_lines[col])
-                    label  = 'ai' + col[-1] #to get the channel number
-                    labels.append(label)
-                else:
-                    temperature_lines[col].set_data(x_temperature, df[col][num-window_size_temperature:num])
-            elif col.startswith('Strain'):
-                if col not in strain_lines:
-                    strain_lines[col], = ax3.plot(x_strain, df[col][num-window_size_strain:num], label=col)
-                    handles.append(strain_lines[col])
-                    label  = 'ai' + col[-1] #to get the channel number
-                    labels.append(label)
-                else:
-                    strain_lines[col].set_data(x_strain, df[col][num-window_size_strain:num])
-
-        # update the x and y axis limits
-        ax1.set_ylim(0,5)
-        ax1.relim()
-        ax1.autoscale_view(scalex=True, scaley=False)
-        ax2.relim()
-        ax2.autoscale_view()
-        ax3.relim()
-        ax3.autoscale_view()
-
-        # print(handles)
-        # print(labels)
-
-        #Add the legend to the figure
-        ax1.legend(handles[:len(voltage_lines)], labels[:len(voltage_lines)], bbox_to_anchor=(0, 1), loc='upper left', borderaxespad=0)
-        ax2.legend(handles[len(voltage_lines):len(voltage_lines)+len(temperature_lines)], labels[len(voltage_lines):len(voltage_lines)+len(temperature_lines)], bbox_to_anchor=(0, 1), loc='upper left', borderaxespad=0)
-        ax3.legend(handles[len(voltage_lines)+len(temperature_lines):], labels[len(voltage_lines)+len(temperature_lines):], bbox_to_anchor=(0, 1), loc='upper left', borderaxespad=0)
-
-    ani = FuncAnimation(fig, update, frames=range(1, len(df)-window_size_voltage+1), repeat=True)
-    plt.show()
-
-
-def main(no_of_voltage_channels, voltage_sampling_rate, no_of_voltage_samples, min_voltage, max_voltage,
-        no_of_temperature_channels, temperature_sampling_rate, no_of_temperature_samples,
-         no_of_strain_channels, strain_sampling_rate, no_of_strain_samples):
-
-    get_device_model(['Voltage_Measurement', 'Strain_Measurement', 'Temperature_Measurement'])
     
+    print(data)
+    
+    # Set the x-axis values based on the sampling rate
+    x_values = data['Seconds']
+
+    # Plot the data for each channel
+    for i, channel in enumerate(voltage_channels):
+        column_name = 'Voltage Measurement {}'.format(i)
+        axs[0].plot(x_values, data[column_name], label='Voltage Channel {}'.format(i))
+
+    for i, channel in enumerate(temperature_channels):
+        column_name = 'Temperature Measurement {}'.format(i)
+        axs[1].plot(x_values, data[column_name], label='Temperature Channel {}'.format(i))
+
+    for i, channel in enumerate(strain_channels):
+        column_name = 'Strain Measurement {}'.format(i)
+        axs[2].plot(x_values, data[column_name], label='Strain Channel {}'.format(i))
+
+    # Set the axes limits, labels, and sliding window
+    for ax in axs:
+        ax.set_xlim(data['Seconds'].iloc[0], data['Seconds'].iloc[-1])
+        ax.set_xlabel('Time (s)')
+    axs[0].set_ylabel('Voltage (V)')
+    axs[1].set_ylabel('Temperature (C)')
+    axs[2].set_ylabel('Strain')
+
+    # Add legends to the plots
+    axs[0].legend()
+    axs[1].legend()
+    axs[2].legend()
+
+    # Add gridlines for better visualization
+    for ax in axs:
+        ax.grid(True)
+
+
+def findNumberOfChannels(device_name):
+    # find the number of channels
+    system = nidaqmx.system.System.local()
+    for device in system.devices:
+        if device.name == device_name:
+            number_of_channels = len(device.ai_physical_chans)
+            return number_of_channels
+        
+
+# write a function to find the device name
+def findDeviceName():
+    # find the device name
+    system = nidaqmx.system.System.local()
+    for device in system.devices:
+        device_name = device.name
+    return device_name
+
+def main():
+
+    global counter
+    counter = 0
+
+    # Get the device name and the number of channels
+    device_name = findDeviceName()
+    num_channels = findNumberOfChannels(device_name)
+
+    # Define the channels and parameters for each type of data
+    voltage_channels = ['ai{}'.format(i) for i in range(num_channels)][:4]
+    voltage_sampling_rate = 500
+    voltage_samples = 100
+
+    temperature_channels = ['ai{}'.format(i) for i in range(num_channels)][4:6]
+    temperature_sampling_rate = 5000
+    temperature_samples = 100
+
+    strain_channels = ['ai{}'.format(i) for i in range(num_channels)][6:8]
+    strain_sampling_rate = 500
+    strain_samples = 100
+
     # Create empty pandas dataframe to store data
-    df = pd.DataFrame(columns=['Voltage Measurement 0', 'Voltage Measurement 1',
-                                'Voltage Measurement 2', 'Voltage Measurement 3',   
-                                'Temperature Measurement 0', 'Temperature Measurement 1',
-                                'Strain Measurement 0', 'Strain Measurement 1'])
+    global data_df
+    data_df = pd.DataFrame(columns=['Voltage Measurement {}'.format(i) for i in range(len(voltage_channels))] +
+                            ['Temperature Measurement {}'.format(i) for i in range(len(temperature_channels))] +
+                            ['Strain Measurement {}'.format(i) for i in range(len(strain_channels))])
 
-    # Continuously read data and load into dataframe
-    while True:
+    fig, axs = plt.subplots(3, 1, figsize=(12, 8))
 
-        # Read data from tasks
-        voltage_data = readDAQData('voltage', 'Voltage_Measurement', no_of_voltage_channels, voltage_sampling_rate, no_of_voltage_samples, min_voltage, max_voltage)
+    # Define the window length (in seconds)
+    window_length = 100
 
-        for i in range(0,len(voltage_data)):
-            df['Voltage Measurement ' + str(i)] = pd.DataFrame(voltage_data[i])
+    def update_plot(frame):
 
-        temperature_data = readDAQData('temperature', 'Temperature_Measurement', no_of_temperature_channels, temperature_sampling_rate, no_of_temperature_samples, 0, 0)
+        global data_df
+        global counter
 
-        for i in range(0, len(temperature_data)):
-            df['Temperature Measurement ' + str(i)] = pd.DataFrame(temperature_data[i])
+        # Read the data from the DAQ
+        voltage_data = readDAQData(device_name=device_name, voltage_channels=voltage_channels,
+                                sampling_rate=voltage_sampling_rate,
+                                samples_per_channel=voltage_samples)
+        
+        temperature_data = readDAQData(device_name=device_name, thermocouple_channels=temperature_channels,
+                                    sampling_rate=temperature_sampling_rate,
+                                    samples_per_channel=temperature_samples)
+                
+        strain_data = readDAQData(device_name=device_name, voltage_channels=strain_channels,
+                                sampling_rate=strain_sampling_rate,
+                                samples_per_channel=strain_samples)
+        
+        strain_data = voltage_to_force(strain_data)
 
-        strain_data = readDAQData('strain', 'Strain_Measurement', no_of_strain_channels, strain_sampling_rate, no_of_strain_samples, 0, 0)
+        # Add the data to the DataFrame
+        current_time = datetime.datetime.now()
+        num_samples = len(voltage_data[voltage_channels[0]])
 
-        for i in range(0, len(strain_data)):
-            df['Strain Measurement ' + str(i)] = pd.DataFrame(strain_data[i]) 
+        seconds = counter * num_samples / voltage_sampling_rate + np.arange(num_samples) / voltage_sampling_rate
+        sample = {'Time': [current_time] * num_samples, 'Seconds': seconds}
+    
+        for i, channel in enumerate(voltage_channels):
+            column_name = 'Voltage Measurement {}'.format(i)
+            sample[column_name] = pd.Series(voltage_data[channel])
 
-        update_subplots(df, window_size_voltage = 500, window_size_temperature = 100, window_size_strain = 500)
+        for i, channel in enumerate(temperature_channels):
+            column_name = 'Temperature Measurement {}'.format(i)
+            sample[column_name] = pd.Series(temperature_data[channel])
+
+        for i, channel in enumerate(strain_channels):
+            column_name = 'Strain Measurement {}'.format(i)
+            sample[column_name] = pd.Series(strain_data[channel])
+
+        # Convert the sample dictionary to a DataFrame
+        sample_df = pd.DataFrame(sample)
+
+        # Append the sample dataframe to the data dataframe
+        data_df = pd.concat([data_df, sample_df], ignore_index=True)
+
+        # Write the data_df to a CSV file, overwriting the existing contents
+        csv_file = 'data.csv'
+        data_df.to_csv(csv_file, mode='w', index=False)
+
+        counter += 1
+
+        # Update the plot with the latest data
+        plotData(axs, data_df[-window_length:], voltage_sampling_rate, window_length, voltage_channels=voltage_channels, temperature_channels=temperature_channels, strain_channels=strain_channels)
+        fig.canvas.draw_idle()
+        
+    ani = animation.FuncAnimation(fig, update_plot, interval=100)
+    plt.show()

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>VESC Control Interface</title>
+</head>
+<body>
+	<h1>VESC Control Interface</h1>
+
+	<form action="/start" method="POST">
+		<label for="speed">Motor Speed:</label>
+		<input type="number" id="speed" name="speed" required>
+
+		<label for="current">Motor Current:</label>
+		<input type="number" id="current" name="current" required>
+
+		<label for="duty_cycle">Motor Duty Cycle:</label>
+		<input type="number" id="duty_cycle" name="duty_cycle" required>
+
+		<label for="profile">Test Profile:</label>
+		<select id="profile" name="profile">
+			<option value="constant_speed">Constant Speed</option>
+			<option value="ramp_up">Ramp Up</option>
+			<option value="ramp_down">Ramp Down</option>
+			<option value="stop">Stop</option>
+		</select>
+
+		<div id="ramp-up-options" style="display:none;">
+			<label for="final_speed">Final Speed:</label>
+			<input type="number" id="final_speed" name="final_speed">
+		</div>
+
+		<button type="submit">Start Motor</button>
+	</form>
+
+	<form action="/stop" method="POST">
+		<button type="submit">Stop Motor</button>
+	</form>
+
+	<script>
+		// Show the "Final Speed" input field if "Ramp Up" profile is selected
+		document.querySelector("#profile").addEventListener("change", function() {
+			if (this.value === "ramp_up") {
+				document.querySelector("#ramp-up-options").style.display = "block";
+			} else {
+				document.querySelector("#ramp-up-options").style.display = "none";
+			}
+		});
+	</script>
+</body>
+</html>
