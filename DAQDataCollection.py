@@ -36,7 +36,7 @@ def configureDAQ(device_name, type, channels, sampling_rate, samples_per_channel
     # Add the channels to the task
     for channel in channels:
         if type == 'voltage':
-            task.ai_channels.add_ai_voltage_chan("{}/{}".format(device_name, channel), min_val=-10.0, max_val=10.0)
+            task.ai_channels.add_ai_voltage_chan("{}/{}".format(device_name, channel), min_val=0, max_val=5)
         elif type == 'temperature':
             task.ai_channels.add_ai_thrmcpl_chan("{}/{}".format(device_name, channel),
                                                   thermocouple_type=nidaqmx.constants.ThermocoupleType.K,
@@ -58,10 +58,11 @@ def configureDAQ(device_name, type, channels, sampling_rate, samples_per_channel
     task.in_stream.input_buf_size = buffer_size
 
 
-def readDAQData(task, samples_per_channel, channels):
+def readDAQData(task, samples_per_channel, channels, type):
     """
     Read the data from the specified task and return a dictionary mapping the actual
-    channel names to the column data.
+    channel names to the column data. If the channel is of type 'voltage', it converts
+    the data to differential pressure values.
     """
     try:
         # Read the data from the task
@@ -74,31 +75,23 @@ def readDAQData(task, samples_per_channel, channels):
             channel_data[channels[0]] = data
         else:
             for i, channel in enumerate(channels):
-                channel_data[channel] = data[i]
+                if type == 'voltage':
+                    # Convert voltage data to differential pressure values
+                    voltage_data = data[i]
+                    pressure_data = []
+                    for voltage in voltage_data:
+                        output_percent = (voltage / 5.0) * 100.0
+                        pressure = ((80.0 / 12.0) * (output_percent - 10.0)) - 6.0
+                        pressure_data.append(pressure)
+                    channel_data[channel] = pressure_data
+                else:
+                    channel_data[channel] = data[i]
 
         return channel_data
     
     except nidaqmx.errors.DaqReadError as e:
         print("Error while reading DAQ data:", e)
         return None
-
-
-def readDAQData(task, samples_per_channel, channels):
-        
-    # Read the data from the task
-    data = task.read(number_of_samples_per_channel=samples_per_channel)
-
-    # Create a dictionary that maps the actual channel names to the column data
-    channel_data = {}
-
-    if len(channels) == 1:
-        channel_data[channels[0]] = data
-    else:
-        for i, channel in enumerate(channels):
-            channel_data[channel] = data[i]
-
-    return channel_data
-
 
 def plotData(axs, data, sampling_rate, window_size, voltage_channels = [], temperature_channels = [], strain_channels = []):
     """
@@ -124,7 +117,7 @@ def plotData(axs, data, sampling_rate, window_size, voltage_channels = [], tempe
         column_name = 'Strain Measurement {}'.format(i)
         axs[2].plot(x_values, data[column_name], label='Strain Channel {}'.format(i))
 
-    axs[0].set_ylim(data[[f'Voltage Measurement {i}' for i in range(len(voltage_channels))]].min().min() - 1, data[[f'Voltage Measurement {i}' for i in range(len(voltage_channels))]].max().max() + 1)
+    axs[0].set_ylim(data[[f'Voltage Measurement {i}' for i in range(len(voltage_channels))]].min().min() - 10, data[[f'Voltage Measurement {i}' for i in range(len(voltage_channels))]].max().max() + 10)
     axs[1].set_ylim(data[[f'Temperature Measurement {i}' for i in range(len(temperature_channels))]].min().min() - 1, data[[f'Temperature Measurement {i}' for i in range(len(temperature_channels))]].max().max() + 1)
     axs[2].set_ylim(data[[f'Strain Measurement {i}' for i in range(len(strain_channels))]].min().min(), data[[f'Strain Measurement {i}' for i in range(len(strain_channels))]].max().max())
 
@@ -132,7 +125,7 @@ def plotData(axs, data, sampling_rate, window_size, voltage_channels = [], tempe
     for ax in axs:
         ax.set_xlim(data['Seconds'].iloc[0], data['Seconds'].iloc[-1])
         ax.set_xlabel('Time (s)')
-    axs[0].set_ylabel('Voltage (V)')
+    axs[0].set_ylabel('Pressure (mbar)')
     axs[1].set_ylabel('Temperature (C)')
     axs[2].set_ylabel('Strain')
 
@@ -202,18 +195,18 @@ def main(voltage_device = 'Voltage_DAQ', temperature_device = 'Temp_Device', str
         global counter
 
         # Read the data from the DAQ
-        voltage_data = readDAQData(voltage_task,samples_per_channel=voltage_samples, channels=voltage_channels)
+        voltage_data = readDAQData(voltage_task, samples_per_channel=voltage_samples, channels=voltage_channels, type='voltage')
 
         if voltage_data is None:
             return
 
-        temperature_data = readDAQData(temperature_task, samples_per_channel=temperature_samples, channels=temperature_channels)
+        temperature_data = readDAQData(temperature_task, samples_per_channel=temperature_samples, channels=temperature_channels, type='temperature')
 
         if temperature_data is None:
             return 
-        
-        strain_data = readDAQData(strain_task, samples_per_channel=strain_samples, channels=strain_channels)
-        
+            
+        strain_data = readDAQData(strain_task, samples_per_channel=strain_samples, channels=strain_channels, type='strain')
+            
         if strain_data is None:
             return
         

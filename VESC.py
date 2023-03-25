@@ -105,4 +105,3 @@ class MotorControl(threading.Thread):
     def stop(self):
         self.vesc.stop()
         self.join()
-

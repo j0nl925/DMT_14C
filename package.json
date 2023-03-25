@@ -1,0 +1,19 @@
+{
+  "name": "dmt_14c",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "create-css": "npx tailwindcss -i ./src/input.css -o ./static/css/main.css --watch"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "tailwindcss": "^3.2.7"
+  },
+  
+  "dependencies": {
+    "chart.js": "^4.1.2",
+    "react-chartjs-2": "^5.2.0"
+}
+}
