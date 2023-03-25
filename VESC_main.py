@@ -69,13 +69,6 @@ def profile_submission():
     return render_template('index.html')
 
 
-@app.route('/daq-data')
-def get_daq_data():
-    # Get the DAQ data from the task using readDAQData() function
-    data = readDAQData(task, samples_per_channel, channels, type)
-    return jsonify(data)
-
-
     #if profile == 'ramp_up':
         #final_speed = int(request.form['final_speed'])
         #motor_control.start(speed, profile, current, duty_cycle, final_speed=final_speed)
