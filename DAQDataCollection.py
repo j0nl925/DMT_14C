@@ -93,67 +93,67 @@ def readDAQData(task, samples_per_channel, channels, type):
         print("Error while reading DAQ data:", e)
         return None
 
-def plotData(axs, data, sampling_rate, window_size, voltage_channels = [], temperature_channels = [], strain_channels = []):
-    """
-    Plot the data for each channel (voltage, temperature, and strain) in the given axs.
-    """
-    # Clear the existing plots
-    for ax in axs:
-        ax.clear()
+# def plotData(axs, data, sampling_rate, window_size, voltage_channels = [], temperature_channels = [], strain_channels = []):
+#     """
+#     Plot the data for each channel (voltage, temperature, and strain) in the given axs.
+#     """
+#     # Clear the existing plots
+#     for ax in axs:
+#         ax.clear()
     
-    # Set the x-axis values based on the sampling rate
-    x_values = data['Seconds']
+#     # Set the x-axis values based on the sampling rate
+#     x_values = data['Seconds']
 
-    # Plot the data for each channel
-    for i, channel in enumerate(voltage_channels):
-        column_name = 'Voltage Measurement {}'.format(i)
-        axs[0].plot(x_values, data[column_name], label='Voltage Channel {}'.format(i))
+#     # Plot the data for each channel
+#     for i, channel in enumerate(voltage_channels):
+#         column_name = 'Voltage Measurement {}'.format(i)
+#         axs[0].plot(x_values, data[column_name], label='Voltage Channel {}'.format(i))
 
-    for i, channel in enumerate(temperature_channels):
-        column_name = 'Temperature Measurement {}'.format(i)
-        axs[1].plot(x_values, data[column_name], label='Temperature Channel {}'.format(i))
+#     for i, channel in enumerate(temperature_channels):
+#         column_name = 'Temperature Measurement {}'.format(i)
+#         axs[1].plot(x_values, data[column_name], label='Temperature Channel {}'.format(i))
 
-    for i, channel in enumerate(strain_channels):
-        column_name = 'Strain Measurement {}'.format(i)
-        axs[2].plot(x_values, data[column_name], label='Strain Channel {}'.format(i))
+#     for i, channel in enumerate(strain_channels):
+#         column_name = 'Strain Measurement {}'.format(i)
+#         axs[2].plot(x_values, data[column_name], label='Strain Channel {}'.format(i))
 
-    axs[0].set_ylim(data[[f'Voltage Measurement {i}' for i in range(len(voltage_channels))]].min().min() - 10, data[[f'Voltage Measurement {i}' for i in range(len(voltage_channels))]].max().max() + 10)
-    axs[1].set_ylim(data[[f'Temperature Measurement {i}' for i in range(len(temperature_channels))]].min().min() - 1, data[[f'Temperature Measurement {i}' for i in range(len(temperature_channels))]].max().max() + 1)
-    axs[2].set_ylim(data[[f'Strain Measurement {i}' for i in range(len(strain_channels))]].min().min(), data[[f'Strain Measurement {i}' for i in range(len(strain_channels))]].max().max())
+#     axs[0].set_ylim(data[[f'Voltage Measurement {i}' for i in range(len(voltage_channels))]].min().min() - 10, data[[f'Voltage Measurement {i}' for i in range(len(voltage_channels))]].max().max() + 10)
+#     axs[1].set_ylim(data[[f'Temperature Measurement {i}' for i in range(len(temperature_channels))]].min().min() - 1, data[[f'Temperature Measurement {i}' for i in range(len(temperature_channels))]].max().max() + 1)
+#     axs[2].set_ylim(data[[f'Strain Measurement {i}' for i in range(len(strain_channels))]].min().min(), data[[f'Strain Measurement {i}' for i in range(len(strain_channels))]].max().max())
 
-    # Set the axes limits, labels, and sliding window
-    for ax in axs:
-        ax.set_xlim(data['Seconds'].iloc[0], data['Seconds'].iloc[-1])
-        ax.set_xlabel('Time (s)')
-    axs[0].set_ylabel('Pressure (mbar)')
-    axs[1].set_ylabel('Temperature (C)')
-    axs[2].set_ylabel('Strain')
+#     # Set the axes limits, labels, and sliding window
+#     for ax in axs:
+#         ax.set_xlim(data['Seconds'].iloc[0], data['Seconds'].iloc[-1])
+#         ax.set_xlabel('Time (s)')
+#     axs[0].set_ylabel('Pressure (mbar)')
+#     axs[1].set_ylabel('Temperature (C)')
+#     axs[2].set_ylabel('Strain')
 
-    # Add legends to the plots
-    axs[0].legend()
-    axs[1].legend()
-    axs[2].legend()
+#     # Add legends to the plots
+#     axs[0].legend()
+#     axs[1].legend()
+#     axs[2].legend()
 
-    # Add gridlines for better visualization
-    for ax in axs:
-        ax.grid(True)
+#     # Add gridlines for better visualization
+#     for ax in axs:
+#         ax.grid(True)
 
-def findNumberOfChannels(device_name):
-    # find the number of channels
-    system = nidaqmx.system.System.local()
-    for device in system.devices:
-        if device.name == device_name:
-            number_of_channels = len(device.ai_physical_chans)
-            return number_of_channels
+# def findNumberOfChannels(device_name):
+#     # find the number of channels
+#     system = nidaqmx.system.System.local()
+#     for device in system.devices:
+#         if device.name == device_name:
+#             number_of_channels = len(device.ai_physical_chans)
+#             return number_of_channels
         
 
-# write a function to find the device name
-def findDeviceName():
-    # find the device name
-    system = nidaqmx.system.System.local()
-    for device in system.devices:
-        device_name = device.name
-    return device_name
+# # write a function to find the device name
+# def findDeviceName():
+#     # find the device name
+#     system = nidaqmx.system.System.local()
+#     for device in system.devices:
+#         device_name = device.name
+#     return device_name
 
 def main(voltage_device = 'Voltage_DAQ', temperature_device = 'Temp_Device', strain_device = 'Strain_Device', voltage_channels = ['1', '2', '3', '4'], temperature_channels = ['1'], strain_channels = ['1','2']):
 
@@ -187,12 +187,7 @@ def main(voltage_device = 'Voltage_DAQ', temperature_device = 'Temp_Device', str
 
     fig, axs = plt.subplots(3, 1, figsize=(12, 8))
 
-    # Define the window length (in seconds)
-    window_length = 1000
-
-    def update_plot(frame):
-        global data_df
-        global counter
+    while True:
 
         # Read the data from the DAQ
         voltage_data = readDAQData(voltage_task, samples_per_channel=voltage_samples, channels=voltage_channels, type='voltage')
@@ -217,7 +212,7 @@ def main(voltage_device = 'Voltage_DAQ', temperature_device = 'Temp_Device', str
         seconds = counter * (num_samples * seconds_per_sample) + np.arange(num_samples) * seconds_per_sample
 
         sample = {'Time': [current_time] * num_samples, 'Seconds': seconds}
-    
+        
         for i, channel in enumerate(voltage_channels):
             column_name = 'Voltage Measurement {}'.format(i)
             sample[column_name] = pd.Series(voltage_data[channel])
@@ -243,11 +238,5 @@ def main(voltage_device = 'Voltage_DAQ', temperature_device = 'Temp_Device', str
 
         counter += 1
 
-        #Update the plot with the latest data
-        plotData(axs, data_df[-window_length:], voltage_sampling_rate, window_length, voltage_channels=voltage_channels, temperature_channels=temperature_channels, strain_channels=strain_channels)
-        fig.canvas.draw_idle()
 
-        print(counter)
-        
-    ani = animation.FuncAnimation(fig, update_plot, interval=20, cache_frame_data=False)
-    plt.show()
+    

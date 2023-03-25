@@ -13,7 +13,7 @@
         # Configure the properties of the virtual channel, such as the minimum and maximum values, the sample rate, etc.
         # Once you have created the virtual device and channels, you can use the same readDAQData function in your script to read the data from the virtual channels just as you would from a physical device.
 
-from DAQDataCollection import readDAQData, plotData, main
+from DAQDataCollection import readDAQData, main
 import matplotlib.pyplot as plt
 import nidaqmx
 
