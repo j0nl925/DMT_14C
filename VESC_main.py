@@ -2,12 +2,12 @@ from flask import Flask, render_template, request
 from VESC import VESC, MotorControl
 from DAQDataCollection import readDAQData
 import DAQDataCollection
-import threading
 import time 
 import os
 
 
 app = Flask(__name__, static_url_path='/static', template_folder='templates')
+
 # vesc = VESC("/dev/ttyACM0")
 # motor_control = MotorControl(vesc)
 
@@ -37,6 +37,7 @@ def software_manual():
 @app.route('/input_parameters')
 def input_parameters():
     return render_template('inputparameters.html')
+
 
 @app.route('/duty_cycle_submit', methods=['POST'])
 def duty_cycle_submission():
@@ -75,7 +76,6 @@ def profile_submission():
     #else:
         #motor_control.start(speed, profile, current, duty_cycle)
         #print('')
-
 
 
 @app.route('/stop', methods=['POST'])
