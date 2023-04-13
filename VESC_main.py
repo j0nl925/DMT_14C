@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request
-from VESC import VESC, MotorControl
+from motor_vesc import VESC, MotorControl
 from DAQDataCollection import readDAQData
 import DAQDataCollection
 import time 
