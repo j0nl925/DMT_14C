@@ -33,13 +33,14 @@ This should download all the libraries you need to make the web app functional.
 
 
 ### VESC
-    1. Connect your VESC to the computer via USB
-    2. Determine the port that your VESC is connected to by going to the Device Manager on Windows or running the ls /dev/tty* command on Linux or macOS.
-    3. Keep note of this port number for when you run your local web app. 
-    4. Run the [motor_vesc.py](./motor_vesc.py) file
+1. Connect your VESC to the computer via USB
+2. Determine the port that your VESC is connected to by going to the Device Manager on Windows or running the ls /dev/tty* command on Linux or macOS.
+3. Keep note of this port number for when you run your local web app. 
+4. Run the [motor_vesc.py](./motor_vesc.py) file
 
 ### Data Acquisition
-    1. Ensure that all the physical connections to the National Instrument are done correctly. This includes connecting the sensors or signal sources to the DAQ device.
-    2. Install NI MAX (Measurement & Automation Explorer) on your computer. This is the driver software that will allow you to communicate with the DAQ device. You can download it from the National Instruments website
-    3. Connect the DAQ device to your computer using a USB cable
-    4. After connecting, open NI MAX and check if the DAQ module and devices are detected by the software as well as all the physical channels
+1. Ensure that all the physical connections to the National Instrument are done correctly. This includes connecting the sensors or signal sources to the DAQ device.
+2. Install NI MAX (Measurement & Automation Explorer) on your computer. This is the driver software that will allow you to communicate with the DAQ device. You can download it from the National Instruments website
+3. Connect the DAQ device to your computer using a USB cable
+4. After connecting, open NI MAX and check if the DAQ module and devices are detected by the software as well as all the physical channels
+
