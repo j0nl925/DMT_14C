@@ -29,6 +29,11 @@ This should download all the libraries you need to make the web app functional.
   5. Upload the sketch to the Arduino board by clicking the Upload button in the Arduino IDE.
   6. Open the serial monitor in the Arduino IDE by clicking the magnifying glass icon in the top right corner of the IDE window.
   7. Make sure the baud rate is set to 9600 in the serial monitor.
+  8. Open the [actuator.py](./actuator.py) file and run it. 
 
 
-
+### VESC
+    1. Connect your VESC to the computer via USB
+    2. Determine the port that your VESC is connected to by going to the Device Manager on Windows or running the ls /dev/tty* command on Linux or macOS.
+    3. Keep note of this port number for when you run your local web app. 
+    4. Run the [motor_vesc.py](./motor_vesc.py) file
