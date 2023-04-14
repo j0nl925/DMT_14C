@@ -1,7 +1,7 @@
 <!Doctype html>
 <html>
 <head>
-    <title>Data acquisition</title>
+    <title>DMT 14C: Data acquisition software</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="{{url_for('static',filename='dist/css/output.css')}}" rel="stylesheet">
@@ -9,22 +9,21 @@
 
 <!--Title card and Export CSV button-->
 <body class="bg-slate-100">
-    <div class="bg-red-500 p-3">
-        <h1 class="bg-white rounded p-4 border-2 border-b-blue-700 text-3xl text-center font-bold ml-4 mr-4 mt-4 mb-4">DMT 14C: Aerodynamic probe and data acquisition software</h1>
-        <p class="text-xl font-bold ml-6 mt-5 mb-3">Software navigation:</p>  
-        <div class="grid grid-cols-3 gap-4 ml-4 mr-4">
-            <button class="bg-white rounded p-3 border-2 font-bold" onclick="window.location.href='/software_manual'">How To Use</button>
-            <button class="bg-white rounded p-3 border-2 font-bold" onclick="window.location.href='/input_parameters'">Input Paramters</button>
-            <button class="bg-white rounded p-3 border-2 font-bold" onclick="window.location.href='/'">Saved Profiles</button>
+    <div class="bg-blue-900 p-3">
+        <h1 class="text-slate-50 p-4 text-3xl text-center font-bold mt-4 mb-4">DMT 14C: Aerodynamic probe and data acquisition software</h1>
+        <p class="text-slate-50 text-xl font-bold ml-4 mt-5 mb-3">Software navigation</p>  
+        <div class="grid grid-cols-3 gap-4 ml-4 mr-4 text-slate-50">
+            <button class="bg-blue-800 rounded p-3 border-2" onclick="window.location.href='/software_manual'">How To Use</button>
+            <button class="bg-blue-800 rounded p-3 border-2" onclick="window.location.href='/input_parameters'">Input Paramters</button>
+            <button class="bg-blue-800 rounded p-3 border-2" onclick="window.location.href='/saved_profiles'">Saved Profiles</button>
         </div>
     </div>
 
     <!--Input parameter cards-->
 
-    <p class="text-xl font-bold ml-6 mt-5 mb-3">Current profile:</p>
-    <form action="{{url_for('profile_submission')}}" method="post">
+    <p class="text-xl font-bold ml-4 mt-5 mb-3">Current profile</p>
         <select class="col-span-2 text-center bg-white border-2 rounded p-3 ml-4 mb-2" style="width: 30em">
-            <option>Profile 1</option>
+            <option></option>
             <option>Profile 2</option>
             <option>Profile 3</option>
             <option>Profile 4</option>
@@ -32,30 +31,118 @@
     </form> 
 
     <div>
-        <p class="text-xl font-bold ml-6 mt-5 mb-3">Input values below:</p> 
-        <div class="grid grid-cols-4 gap-4 ml-4 mr-4 mb-6">
+        <p class="text-xl font-bold ml-4 mt-5 mb-3">Inputted values</p>
+        <div>
+            <p class="ml-4 mb-3">Select fan motor profile:</p>
+            <form action="{{url_for('motor_profile_selection')}}">
+                <select id="motor_profile" name="motor_profile" class="text-center bg-white border-2 rounded p-3 ml-4 mb-3" style="width: 15em">
+                    <option value="profile_constant_speed">Constant speed</option>
+                    <option value="profile_ramp_up">Ramp up</option>
+                    <option value="profile_ramp_down">Ramp down</option>
+                </select><br>
+            </form>
+        </div> 
+
+        <div class="grid grid-cols-6 gap-4 ml-4 mr-4 mb-6">
             <!--Fan motor parameters-->
-            <div class="bg-white rounded p-3">
+            <div class="col-span-2 bg-white rounded p-3">
                 <p class="text-slate-500 ml-1 mb-3">Fan motor</p>
-                    <div class="grid grid-cols-2 gap-4 ml-4 mr-4">
+                    <div class="grid grid-cols-5 gap-2 mb-4">
+                        <p class="text-center">Duty cycle [%]</p>
+                        <p class="text-center">Current [A]</p>
+                        <p class="text-center">Input speed [rpm]</p>
+                        <p class="text-center">Ramp down speed [rpm]</p>
+                        <p class="text-center">Ramp up speed [rpm]</p>
+                    </div>
+                    <div class="grid grid-cols-5 gap-2 mb-2">
+                        <div>
+                            <p class="text-xl text-center font-bold">
+                                {% if input_motor_data.duty_cycle %}
+                                    {{ input_motor_data.duty_cycle}}
+                                {% else %}
+                                    0
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-xl text-center font-bold">
+                                {% if input_motor_data.current %}
+                                    {{ input_motor_data.current}}
+                                {% else %}
+                                    0
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-xl text-center font-bold">
+                                {% if input_motor_data.speed %}
+                                    {{ input_motor_data.speed}}
+                                {% else %}
+                                    0
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-xl text-center font-bold">
+                                {% if input_motor_data.ramp_down_speed %}
+                                    {{ input_motor_data.ramp_down_speed}}
+                                {% else %}
+                                    0
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-xl text-center font-bold">
+                                {% if input_motor_data.ramp_up_speed %}
+                                    {{ input_motor_data.ramp_up_speed}}
+                                {% else %}
+                                    0
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
             </div>           
-        </div>
             <!--Linear actuator-->
             <div class="bg-white rounded p-3">
                 <p class="text-slate-500 ml-1 mb-3">Linear actuator</p>
-                <p class="text-xl text-center font-bold mb-5">Enter actuator position [m]</p>
+                <p class="text-xl text-center mb-5">Actuator position [mm]</p>
+                <div>
+                    <p class="text-xl text-center font-bold p-5">
+                        {% if input_motor_data.linear_actuator %}
+                            {{ input_motor_data.linear_actuator}}
+                        {% else %}
+                            0
+                        {% endif %}
+                    </p>
+                </div>
             </div>
             <!--Rotary motor-->
             <div class="bg-white rounded p-3">
                 <p class="text-slate-500 ml-1 mb-3">Rotary motor</p>
-                <p class="text-xl text-center font-bold mb-5">Enter rotary position [&#176;]</p>
+                <p class="text-xl text-center mb-5">Rotary position [&#176;]</p>
+                <div>
+                    <p class="text-xl text-center font-bold p-5">
+                        {% if input_motor_data.rotary_motor %}
+                            {{ input_motor_data.rotary_motor}}
+                        {% else %}
+                            0
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            <!--Reset button-->
+            <div class="bg-white rounded p-3">
+                <p class="text-slate-500 ml-1 mb-3">Reset values</p>
+                <form action="{{url_for('reset_session')}}" method="POST" class="text-center">
+                    <button class="bg-yellow-400 hover:bg-yellow-500 rounded p-4 mt-4 text-lg text-center font-bold" style="width: 7em">Reset</button>    
+                </form>
             </div>
             <!--System control-->
             <div class="bg-white rounded p-3">
                 <p class="text-slate-500 ml-1 mb-3">System control</p>
-                <div class="grid grid-cols-2 gap-2">
-                    <button id="start-button" class="bg-green-500 hover:bg-green-600 rounded p-4 ml-2 mr-2 mt-4 text-lg font-bold">Start</button>
-                    <button class="bg-red-500 hover:bg-red-600 rounded p-4 ml-2 mr-2 mt-4 text-lg font-bold">Stop</button>
+                <div class="grid grid-cols-2 gap-4">
+                    <button id="start-button" class="bg-green-500 hover:bg-green-600 rounded p-4 ml-1 mt-4 text-lg font-bold" style="width: 5em">Start</button>
+                    <button class="bg-red-500 hover:bg-red-600 rounded p-4 mr-1 mt-4 text-lg font-bold" style="width: 5em">Stop</button>
                 </div>
             </div>
         </div>
