@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Data acquisition</title>
+    <meta charset="UTF-8">
+    <meta name ="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="{{url_for('static',filename='dist/css/output.css')}}" rel="stylesheet">
+</head>
+
+<body class="bg-slate-100">
+    <div class="bg-red-500 p-3">
+        <div class="grid grid-cols-1 gap-1 ml-4 mr-4 mt-4 mb-4">
+            <h1 class="bg-white rounded p-4 border-2 border-b-blue-700 text-3xl text-center font-bold">DMT 14C: Aerodyanmic probe and data acquisition software - How to use</h1>
+        </div>
+    </div>
+    <button class="bg-red-500 rounded p-3 border-2 ml-4 mt-4" onclick="window.location.href='/'">&#8249; Back to main page</button>
+    <h1 class="text-2xl font-bold ml-4 mt-4 mb-2">Below is a step-by-step guide on how to use the software</h1>
+    <ol class="list-decimal list-inside ml-4 mr-4 mt-3 text-lg">
+        <li>In the 'Input Parameters' subpage, create your first profile by giving it a name and click the submit button. If you choose to not give it any name, it will be given the default name: "Profile x - DD/MM/YYYY at HR/MIN/SEC".</li>
+        <li>If you go back to the main page, the profile you have most recently created should show up under the 'Current Profile' dropdown.</li>
+        <li>Go back to the 'Input Parameters' subpage and enter all your selected values for the fan motor, linear actuator, and rotary motor.</li>
+        <li>Go back to the main page again, you should see all your entered values.</li>
+        <li>Click the start button once you are happy with everything.</li>
+        <li>All the relevant output parameters and charts will show up below.</li>
+        <li>Click the stop button at any time when you wish to stop collecting data.</li>
+        <li>Should you wish to export all your values to a CSV file, click the 'Export CSV' button. </li>
+</body>
+
+
+
+</html>
