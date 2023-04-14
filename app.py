@@ -246,7 +246,7 @@ def start_all():
 
     start_motor(vesc, speed, profile, current, duty_cycle)
     start_actuators()
-    start_daq_data_collection()
+    #start_daq_data_collection()
 
     return redirect(url_for('index'))
 
