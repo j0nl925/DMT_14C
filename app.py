@@ -1,9 +1,13 @@
 from flask import Flask, render_template, request, session, redirect, url_for
 from motor_vesc import VESC
+from actuator import ArduinoControl
 import threading
 import time 
 import os
 
+
+## Stuff to do: 
+    # Add checklist in front end for Input Parameters, Connections, Actuator Control, Motor Control, DAQ Data Collection
 
 app = Flask(__name__, static_url_path='/static', template_folder='templates')
 app.secret_key = "secret_key"
@@ -184,6 +188,7 @@ def motor_input_parameters():
         input_motor_data['ramp_up_speed'] = ramp_up_speed
         input_motor_data['linear_actuator'] = linear_actuator
         input_motor_data['rotary_motor'] = rotary_motor
+        input_motor_data['vesc_port'] = request.form.get('vesc_port')
         session['input_motor_data'] = input_motor_data
 
         print(input_motor_data)
@@ -224,6 +229,68 @@ def motor_profile_selection():
 def reset_session():
     session.clear()
     return redirect(url_for('index'))
+
+
+@app.route('/start_all', methods=['POST'])
+def start_all():
+    input_motor_data = session.get('input_motor_data', {})
+    try:
+        vesc = VESC(input_motor_data['vesc_port'])
+    except:
+        return "Error: VESC port connection not found.", 400
+
+    duty_cycle = input_motor_data['duty_cycle'] / 100
+    current = input_motor_data['current']
+    speed = input_motor_data['speed']
+    profile = 'constant_speed'
+
+    start_motor(vesc, speed, profile, current, duty_cycle)
+    start_actuators()
+    start_daq_data_collection()
+
+    return redirect(url_for('index'))
+
+
+def start_motor(vesc, speed, profile, current, duty_cycle):
+    vesc.start_motor(speed, profile, current, duty_cycle)
+    temp_thread = threading.Thread(target=check_temp, args=(vesc,))
+    temp_thread.start()
+
+def start_actuators():
+    # Retrieve linear actuator and rotary motor positions from session
+    input_motor_data = session.get('input_motor_data', {})
+    linear_position = input_motor_data.get('linear_actuator', 0)
+    rotary_position = input_motor_data.get('rotary_motor', 0)
+
+    # Instantiate the ArduinoControl class with the port number
+    try:
+        arduino = ArduinoControl(input_motor_data['arduino_port'])
+    except:
+        return "Error: Arduino port connection not found.", 400
+
+    # Move the linear actuator and rotary motor to the specified positions
+    try:
+        arduino.move_to(linear_position, rotary_position)
+    except ValueError as e:
+        return str(e), 400
+
+    # Close the serial connection to the Arduino
+    arduino.close()
+
+    return "Actuators started successfully!"
+
+@app.route('/start_motor', methods=['POST'])
+def start_all():
+    start_motor()
+    return redirect(url_for('index'))
+
+def check_temp(vesc):
+    while True:
+        temperature = vesc.get_temperature()
+        if vesc.check_temp(temperature):
+            break
+        time.sleep(1)
+
 
 @app.route('/stop', methods=['POST'])
 def stop():
