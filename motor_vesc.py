@@ -4,7 +4,6 @@
 import pyvesc
 import time
 
-
 class VESC():
     def __init__(self, port):
         # Initialize the pyvesc library with the given port
