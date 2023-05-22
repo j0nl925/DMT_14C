@@ -279,11 +279,6 @@ def start_actuators():
 
     return "Actuators started successfully!"
 
-@app.route('/start_motor', methods=['POST'])
-def start_all():
-    start_motor()
-    return redirect(url_for('index'))
-
 def check_temp(vesc):
     while True:
         temperature = vesc.get_temperature()
