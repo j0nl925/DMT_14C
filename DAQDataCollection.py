@@ -256,6 +256,25 @@ def main(voltage_device='Voltage_DAQ', temperature_device='Temp_Device', strain_
         #socketIO.emit('data', sample_df.to_json())
 
         p_zero_data = sample_df[['Seconds', 'Voltage Measurement 0']]
-        p_zero_data = p_zero_data.rename(columns={'Seconds': 'Seconds', 'Voltage Measurement 0': 'Voltage_0'})
+        p_zero_data = p_zero_data.rename(columns={'Seconds': 'Seconds', 'Voltage Measurement 0': 'P_0'})
         json_p_zero_data = p_zero_data.to_json(orient='values')
-        print(p_zero_data)
+
+        p_one_data = sample_df[['Seconds', 'Voltage Measurement 1']]
+        p_one_data = p_one_data.rename(columns={'Seconds': 'Seconds', 'Voltage Measurement 1': 'P_1'})
+        json_p_zero_data = p_one_data.to_json(orient='values')
+
+        p_two_data = sample_df[['Seconds', 'Voltage Measurement 2']]
+        p_two_data = p_two_data.rename(columns={'Seconds': 'Seconds', 'Voltage Measurement 2': 'P_2'})
+        json_p_two_data = p_two_data.to_json(orient='values')
+
+        p_three_data = sample_df[['Seconds', 'Voltage Measurement 3']]
+        p_three_data = p_three_data.rename(columns={'Seconds': 'Seconds', 'Voltage Measurement 3': 'P_3'})
+        json_p_three_data = p_three_data.to_json(orient='values')
+
+        strain_gauge_one_data = sample_df[['Seconds', 'Strain Measurement 0']]
+        strain_gauge_one_data = strain_gauge_one_data.rename(columns={'Seconds': 'Seconds', 'Strain Measurement 0': 'Strain_0'})
+        json_strain_gauge_one_data = strain_gauge_one_data.to_json(orient='values')
+
+        strain_gauge_two_data = sample_df[['Seconds', 'Strain Measurement 1']]
+        strain_gauge_two_data = strain_gauge_two_data.rename(columns={'Seconds': 'Seconds', 'Strain Measurement 1': 'Strain_1'})
+        json_strain_gauge_two_data = strain_gauge_two_data.to_json(orient='values')
