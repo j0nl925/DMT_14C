@@ -10,6 +10,10 @@ import os
 import threading
 from queue import Queue
 from flask_socketio import SocketIO, emit
+from flask import Flask, render_template, request, session, redirect, url_for
+import json
+
+app = Flask(__name__, static_url_path='/static', template_folder='templates')
 
 # Define global variables for the tasks
 global voltage_task
@@ -94,67 +98,67 @@ def readDAQData(task, samples_per_channel, channels, type):
         print("Error while reading DAQ data:", e)
         return None
 
-# def plotData(axs, data, sampling_rate, window_size, voltage_channels = [], temperature_channels = [], strain_channels = []):
-#     """
-#     Plot the data for each channel (voltage, temperature, and strain) in the given axs.
-#     """
-#     # Clear the existing plots
-#     for ax in axs:
-#         ax.clear()
+def plotData(axs, data, sampling_rate, window_size, voltage_channels = [], temperature_channels = [], strain_channels = []):
+    """
+    Plot the data for each channel (voltage, temperature, and strain) in the given axs.
+    """
+    # Clear the existing plots
+    for ax in axs:
+        ax.clear()
     
-#     # Set the x-axis values based on the sampling rate
-#     x_values = data['Seconds']
+    # Set the x-axis values based on the sampling rate
+    x_values = data['Seconds']
 
-#     # Plot the data for each channel
-#     for i, channel in enumerate(voltage_channels):
-#         column_name = 'Voltage Measurement {}'.format(i)
-#         axs[0].plot(x_values, data[column_name], label='Voltage Channel {}'.format(i))
+    # Plot the data for each channel
+    for i, channel in enumerate(voltage_channels):
+        column_name = 'Voltage Measurement {}'.format(i)
+        axs[0].plot(x_values, data[column_name], label='Voltage Channel {}'.format(i))
 
-#     for i, channel in enumerate(temperature_channels):
-#         column_name = 'Temperature Measurement {}'.format(i)
-#         axs[1].plot(x_values, data[column_name], label='Temperature Channel {}'.format(i))
+    for i, channel in enumerate(temperature_channels):
+        column_name = 'Temperature Measurement {}'.format(i)
+        axs[1].plot(x_values, data[column_name], label='Temperature Channel {}'.format(i))
 
-#     for i, channel in enumerate(strain_channels):
-#         column_name = 'Strain Measurement {}'.format(i)
-#         axs[2].plot(x_values, data[column_name], label='Strain Channel {}'.format(i))
+    for i, channel in enumerate(strain_channels):
+        column_name = 'Strain Measurement {}'.format(i)
+        axs[2].plot(x_values, data[column_name], label='Strain Channel {}'.format(i))
 
-#     axs[0].set_ylim(data[[f'Voltage Measurement {i}' for i in range(len(voltage_channels))]].min().min() - 10, data[[f'Voltage Measurement {i}' for i in range(len(voltage_channels))]].max().max() + 10)
-#     axs[1].set_ylim(data[[f'Temperature Measurement {i}' for i in range(len(temperature_channels))]].min().min() - 1, data[[f'Temperature Measurement {i}' for i in range(len(temperature_channels))]].max().max() + 1)
-#     axs[2].set_ylim(data[[f'Strain Measurement {i}' for i in range(len(strain_channels))]].min().min(), data[[f'Strain Measurement {i}' for i in range(len(strain_channels))]].max().max())
+    axs[0].set_ylim(data[[f'Voltage Measurement {i}' for i in range(len(voltage_channels))]].min().min() - 10, data[[f'Voltage Measurement {i}' for i in range(len(voltage_channels))]].max().max() + 10)
+    axs[1].set_ylim(data[[f'Temperature Measurement {i}' for i in range(len(temperature_channels))]].min().min() - 1, data[[f'Temperature Measurement {i}' for i in range(len(temperature_channels))]].max().max() + 1)
+    axs[2].set_ylim(data[[f'Strain Measurement {i}' for i in range(len(strain_channels))]].min().min(), data[[f'Strain Measurement {i}' for i in range(len(strain_channels))]].max().max())
 
-#     # Set the axes limits, labels, and sliding window
-#     for ax in axs:
-#         ax.set_xlim(data['Seconds'].iloc[0], data['Seconds'].iloc[-1])
-#         ax.set_xlabel('Time (s)')
-#     axs[0].set_ylabel('Pressure (mbar)')
-#     axs[1].set_ylabel('Temperature (C)')
-#     axs[2].set_ylabel('Strain')
+    # Set the axes limits, labels, and sliding window
+    for ax in axs:
+        ax.set_xlim(data['Seconds'].iloc[0], data['Seconds'].iloc[-1])
+        ax.set_xlabel('Time (s)')
+    axs[0].set_ylabel('Pressure (mbar)')
+    axs[1].set_ylabel('Temperature (C)')
+    axs[2].set_ylabel('Strain')
 
-#     # Add legends to the plots
-#     axs[0].legend()
-#     axs[1].legend()
-#     axs[2].legend()
+    # Add legends to the plots
+    axs[0].legend()
+    axs[1].legend()
+    axs[2].legend()
 
-#     # Add gridlines for better visualization
-#     for ax in axs:
-#         ax.grid(True)
+    # Add gridlines for better visualization
+    for ax in axs:
+        ax.grid(True)
 
-# def findNumberOfChannels(device_name):
-#     # find the number of channels
-#     system = nidaqmx.system.System.local()
-#     for device in system.devices:
-#         if device.name == device_name:
-#             number_of_channels = len(device.ai_physical_chans)
-#             return number_of_channels
+def findNumberOfChannels(device_name):
+    # find the number of channels
+    system = nidaqmx.system.System.local()
+    for device in system.devices:
+        if device.name == device_name:
+            number_of_channels = len(device.ai_physical_chans)
+            return number_of_channels
         
 
-# # write a function to find the device name
-# def findDeviceName():
-#     # find the device name
-#     system = nidaqmx.system.System.local()
-#     for device in system.devices:
-#         device_name = device.name
-#     return device_name
+# write a function to find the device name
+def findDeviceName():
+    # find the device name
+    system = nidaqmx.system.System.local()
+    for device in system.devices:
+        device_name = device.name
+    return device_name
 
 def main(voltage_device='Voltage_DAQ', temperature_device='Temp_Device', strain_device='Strain_Device',
          voltage_channels=['1', '2', '3', '4'], temperature_channels=['1'], strain_channels=['1', '2']):
@@ -164,16 +168,16 @@ def main(voltage_device='Voltage_DAQ', temperature_device='Temp_Device', strain_
 
     # Define the channels and parameters for each type of data
     voltage_channels = ['ai{}'.format(i) for i in range(len(voltage_channels))]
-    voltage_sampling_rate = 2500
-    voltage_samples = 2500
+    voltage_sampling_rate = 100
+    voltage_samples = 100
 
     temperature_channels = ['ai{}'.format(i) for i in range(len(temperature_channels))]
-    temperature_sampling_rate = 2500
-    temperature_samples = 2500
+    temperature_sampling_rate = 100
+    temperature_samples = 100
 
     strain_channels = ['ai{}'.format(i) for i in range(len(strain_channels))]
-    strain_sampling_rate = 2500
-    strain_samples = 2500
+    strain_sampling_rate = 100
+    strain_samples = 100
 
     # Create empty pandas dataframe to store data
     global data_df
@@ -240,7 +244,7 @@ def main(voltage_device='Voltage_DAQ', temperature_device='Temp_Device', strain_
         # Convert the sample dictionary to a DataFrame
         sample_df = pd.DataFrame(sample)
 
-        print(sample_df)
+        #print(sample_df)
 
         # Append the sample dataframe to the data dataframe
         data_df = data_df.append(sample_df, ignore_index=True)
@@ -251,5 +255,7 @@ def main(voltage_device='Voltage_DAQ', temperature_device='Temp_Device', strain_
         #Emit the sample data through the socketIO connection
         #socketIO.emit('data', sample_df.to_json())
 
-
-
+        p_zero_data = sample_df[['Seconds', 'Voltage Measurement 0']]
+        p_zero_data = p_zero_data.rename(columns={'Seconds': 'Seconds', 'Voltage Measurement 0': 'Voltage_0'})
+        json_p_zero_data = p_zero_data.to_json(orient='values')
+        print(p_zero_data)

@@ -250,7 +250,6 @@ def start_all():
 
     return redirect(url_for('index'))
 
-
 def start_motor(vesc, speed, profile, current, duty_cycle):
     vesc.start_motor(speed, profile, current, duty_cycle)
     temp_thread = threading.Thread(target=check_temp, args=(vesc,))

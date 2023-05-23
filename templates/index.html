@@ -190,8 +190,7 @@
                 <p class="text-2xl text-center font-bold mt-7">0</p>
             </div>
         </div>
-    <div>
-
+    </div>
 
     </div>
         <p class="text-xl font-bold ml-6 mt-5 mb-3">Graphs</p>
@@ -201,48 +200,40 @@
                 <p class="text-slate-500 ml-1 mb-3">Pressure (static & stagnation) [Pa]</p>
                 <div>
                     <canvas id="pressureChart" width="1100" height="600"></canvas>
-                  </div>
+                </div>
                   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
                   <script>
-                        const ctx = document.getElementById('pressureChart');
-                        new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: [0, 1, 2, 3, 4, 5],
-                            datasets: [{
-                                data: [12, 19, 3, 5, 2, 3],
-                                label: 'P_1',
-                                borderWidth: 1,
-                            }, {
-                                data: [10, 8, 16, 4, 3, 9],
-                                label: 'P_2',
-                                borderWidth: 1,
-                            }, {
-                                data: [5, 12, 17, 1, 6, 3],
-                                label: 'P_3',
-                                borderWidth: 1,
-                            }
-                            ]
+                    var p_data = JSON.parse('{{ json_p_zero_data_ }}');
+
+                    var ctx1 = document.getElementById('pressureChart');
+                    new Chart(ctx1, {
+                    type: 'line',
+                    data: {
+                        labels: p_data.map(item => item[0]),
+                        datasets: [{
+                            data: p_data.map(item => item[1]),
                         },
-                        options: {
-                            scales: {
-                                x: {      
-                                    beginAtZero: true,          
-                                    title: {
-                                        display: true,
-                                        text: 'Time [s]',
-                                    },
+                        ]
+                    },
+                    options: {
+                        scales: {
+                            x: {      
+                                beginAtZero: true,          
+                                title: {
+                                    display: true,
+                                    text: 'Time [s]',
                                 },
-                                y: {
-                                    beginAtZero: true,
-                                    title: {
-                                        display: true,
-                                        text: 'Pressure [Pa]'
-                                    } 
-                                },
-                            }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Temperature [\xB0C]'
+                                } 
+                            },
                         }
-                        });
+                    }
+                    });
                   </script>
             </div>
 
