@@ -209,9 +209,10 @@
                     new Chart(ctx1, {
                     type: 'line',
                     data: {
-                        labels: p_data.map(item => item[0]),
+                        labels: p_data.map(item => item.Seconds),
                         datasets: [{
-                            data: p_data.map(item => item[1]),
+                            data: p_data.map(item => item.P_0),
+                            label: 'P_0'
                         },
                         ]
                     },
