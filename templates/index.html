@@ -203,17 +203,49 @@
                 </div>
                   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
                   <script>
-                    var p_data = JSON.parse('{{ json_p_zero_data_ }}');
+                    var pzero_data = JSON.parse(json_p_zero_data);
+                    var pone_data = JSON.parse('{{ json_p_one_data }}');
+                    var ptwo_data = JSON.parse('{{ json_p_two_data }}');
+                    var pthree_data = JSON.parse('{{ json_p_three_data }}');
 
+                    var Time = pzero_data.map(function(item) {
+                    return item.Seconds;
+                    });
+
+                    var P_0_Values = pzero_data.map(function(item) {
+                    return item.P_0;
+                    });
+
+                    var P_1_Values = pone_data.map(function(item) {
+                    return item.P_1;
+                    });
+
+                    var P_2_Values = ptwo_data.map(function(item) {
+                    return item.P_2;
+                    });
+
+                    var P_3_Values = pthree_data.map(function(item) {
+                    return item.P_3;
+                    });
+                 
                     var ctx1 = document.getElementById('pressureChart');
                     new Chart(ctx1, {
                     type: 'line',
                     data: {
-                        labels: p_data.map(item => item.Seconds),
+                        labels: Time,
                         datasets: [{
-                            data: p_data.map(item => item.P_0),
+                            data: P_0_Values,
                             label: 'P_0'
-                        },
+                        }, {
+                            data: pone_data.map(item => item.P_1),
+                            label: 'P_1'
+                        }, {
+                            data: ptwo_data.map(item => item.P_2),
+                            label: 'P_2'
+                        }, {
+                            data: pthree_data.map(item => item.P_3),
+                            label: 'P_3'
+                        }
                         ]
                     },
                     options: {
@@ -229,7 +261,7 @@
                                 beginAtZero: true,
                                 title: {
                                     display: true,
-                                    text: 'Temperature [\xB0C]'
+                                    text: 'Pressure [Pa]'
                                 } 
                             },
                         }

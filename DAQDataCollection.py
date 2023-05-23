@@ -258,6 +258,7 @@ def main(voltage_device='Voltage_DAQ', temperature_device='Temp_Device', strain_
         p_zero_data = sample_df[['Seconds', 'Voltage Measurement 0']]
         p_zero_data = p_zero_data.rename(columns={'Seconds': 'Seconds', 'Voltage Measurement 0': 'P_0'})
         json_p_zero_data = p_zero_data.to_json(orient='values')
+        print(json_p_zero_data)
 
         p_one_data = sample_df[['Seconds', 'Voltage Measurement 1']]
         p_one_data = p_one_data.rename(columns={'Seconds': 'Seconds', 'Voltage Measurement 1': 'P_1'})
