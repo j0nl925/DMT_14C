@@ -157,10 +157,10 @@
             <div class="bg-white rounded p-4">
                 <p class="text-slate-500 ml-1 mb-3">Pressure (static & stagnation) [Pa]</p>
                 <div class="grid grid-cols-4 gap-1"> 
+                    <p class="text-center mb-2">P<sub>0</sub></p>
                     <p class="text-center mb-2">P<sub>1</sub></p>
                     <p class="text-center mb-2">P<sub>2</sub></p>
                     <p class="text-center mb-2">P<sub>3</sub></p>
-                    <p class="text-center mb-2">P<sub>4</sub></p>
                 </div>
                 <div class="grid grid-cols-4 gap-1"> 
                     <p class="text-xl text-center font-bold">0</p>
@@ -190,8 +190,7 @@
                 <p class="text-2xl text-center font-bold mt-7">0</p>
             </div>
         </div>
-    <div>
-
+    </div>
 
     </div>
         <p class="text-xl font-bold ml-6 mt-5 mb-3">Graphs</p>
@@ -201,48 +200,73 @@
                 <p class="text-slate-500 ml-1 mb-3">Pressure (static & stagnation) [Pa]</p>
                 <div>
                     <canvas id="pressureChart" width="1100" height="600"></canvas>
-                  </div>
+                </div>
                   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
                   <script>
-                        const ctx = document.getElementById('pressureChart');
-                        new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: [0, 1, 2, 3, 4, 5],
-                            datasets: [{
-                                data: [12, 19, 3, 5, 2, 3],
-                                label: 'P_1',
-                                borderWidth: 1,
-                            }, {
-                                data: [10, 8, 16, 4, 3, 9],
-                                label: 'P_2',
-                                borderWidth: 1,
-                            }, {
-                                data: [5, 12, 17, 1, 6, 3],
-                                label: 'P_3',
-                                borderWidth: 1,
-                            }
-                            ]
-                        },
-                        options: {
-                            scales: {
-                                x: {      
-                                    beginAtZero: true,          
-                                    title: {
-                                        display: true,
-                                        text: 'Time [s]',
-                                    },
-                                },
-                                y: {
-                                    beginAtZero: true,
-                                    title: {
-                                        display: true,
-                                        text: 'Pressure [Pa]'
-                                    } 
-                                },
-                            }
+                    var pzero_data = JSON.parse(json_p_zero_data);
+                    var pone_data = JSON.parse('{{ json_p_one_data }}');
+                    var ptwo_data = JSON.parse('{{ json_p_two_data }}');
+                    var pthree_data = JSON.parse('{{ json_p_three_data }}');
+
+                    var Time = pzero_data.map(function(item) {
+                    return item.Seconds;
+                    });
+
+                    var P_0_Values = pzero_data.map(function(item) {
+                    return item.P_0;
+                    });
+
+                    var P_1_Values = pone_data.map(function(item) {
+                    return item.P_1;
+                    });
+
+                    var P_2_Values = ptwo_data.map(function(item) {
+                    return item.P_2;
+                    });
+
+                    var P_3_Values = pthree_data.map(function(item) {
+                    return item.P_3;
+                    });
+                 
+                    var ctx1 = document.getElementById('pressureChart');
+                    new Chart(ctx1, {
+                    type: 'line',
+                    data: {
+                        labels: Time,
+                        datasets: [{
+                            data: P_0_Values,
+                            label: 'P_0'
+                        }, {
+                            data: pone_data.map(item => item.P_1),
+                            label: 'P_1'
+                        }, {
+                            data: ptwo_data.map(item => item.P_2),
+                            label: 'P_2'
+                        }, {
+                            data: pthree_data.map(item => item.P_3),
+                            label: 'P_3'
                         }
-                        });
+                        ]
+                    },
+                    options: {
+                        scales: {
+                            x: {      
+                                beginAtZero: true,          
+                                title: {
+                                    display: true,
+                                    text: 'Time [s]',
+                                },
+                            },
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Pressure [Pa]'
+                                } 
+                            },
+                        }
+                    }
+                    });
                   </script>
             </div>
 

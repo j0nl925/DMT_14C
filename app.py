@@ -250,7 +250,6 @@ def start_all():
 
     return redirect(url_for('index'))
 
-
 def start_motor(vesc, speed, profile, current, duty_cycle):
     vesc.start_motor(speed, profile, current, duty_cycle)
     temp_thread = threading.Thread(target=check_temp, args=(vesc,))
@@ -278,11 +277,6 @@ def start_actuators():
     arduino.close()
 
     return "Actuators started successfully!"
-
-@app.route('/start_motor', methods=['POST'])
-def start_all():
-    start_motor()
-    return redirect(url_for('index'))
 
 def check_temp(vesc):
     while True:
