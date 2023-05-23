@@ -1,6 +1,5 @@
 
 import nidaqmx
-import matplotlib.pyplot as plt
 import numpy as np
 import time
 import datetime
@@ -10,10 +9,7 @@ import os
 import threading
 from queue import Queue
 from flask_socketio import SocketIO, emit
-from flask import Flask, render_template, request, session, redirect, url_for
 import json
-
-app = Flask(__name__, static_url_path='/static', template_folder='templates')
 
 # Define global variables for the tasks
 global voltage_task
@@ -102,9 +98,6 @@ def plotData(axs, data, sampling_rate, window_size, voltage_channels = [], tempe
     """
     Plot the data for each channel (voltage, temperature, and strain) in the given axs.
     """
-    # Clear the existing plots
-    for ax in axs:
-        ax.clear()
     
     # Set the x-axis values based on the sampling rate
     x_values = data['Seconds']
@@ -163,9 +156,6 @@ def findDeviceName():
 def main(voltage_device='Voltage_DAQ', temperature_device='Temp_Device', strain_device='Strain_Device',
          voltage_channels=['1', '2', '3', '4'], temperature_channels=['1'], strain_channels=['1', '2']):
 
-    global counter
-    counter = 0
-
     # Define the channels and parameters for each type of data
     voltage_channels = ['ai{}'.format(i) for i in range(len(voltage_channels))]
     voltage_sampling_rate = 100
@@ -180,10 +170,9 @@ def main(voltage_device='Voltage_DAQ', temperature_device='Temp_Device', strain_
     strain_samples = 100
 
     # Create empty pandas dataframe to store data
-    global data_df
     data_df = pd.DataFrame(columns=['Voltage Measurement {}'.format(i) for i in range(len(voltage_channels))] +
-                                      ['Temperature Measurement {}'.format(i) for i in range(len(temperature_channels))] +
-                                      ['Strain Measurement {}'.format(i) for i in range(len(strain_channels))])
+                                 ['Temperature Measurement {}'.format(i) for i in range(len(temperature_channels))] +
+                                 ['Strain Measurement {}'.format(i) for i in range(len(strain_channels))])
 
     # Configure the DAQ for each type of data
     configureDAQ(device_name=voltage_device, type='voltage', channels=voltage_channels,
@@ -193,11 +182,7 @@ def main(voltage_device='Voltage_DAQ', temperature_device='Temp_Device', strain_
     configureDAQ(device_name=strain_device, type='strain', channels=strain_channels,
                  sampling_rate=strain_sampling_rate, samples_per_channel=strain_samples)
 
-    # define the socketIO client
-    #socketIO = SocketIO('localhost', 3000)
-
     while True:
-
         # Read the data from the DAQ
         voltage_data = readDAQData(voltage_task, samples_per_channel=voltage_samples, channels=voltage_channels,
                                    type='voltage')
@@ -206,7 +191,7 @@ def main(voltage_device='Voltage_DAQ', temperature_device='Temp_Device', strain_
             return
 
         temperature_data = readDAQData(temperature_task, samples_per_channel=temperature_samples,
-                                        channels=temperature_channels, type='temperature')
+                                       channels=temperature_channels, type='temperature')
 
         if temperature_data is None:
             return
@@ -221,7 +206,7 @@ def main(voltage_device='Voltage_DAQ', temperature_device='Temp_Device', strain_
         current_time = datetime.datetime.now()
         num_samples = len(voltage_data[voltage_channels[0]])
         seconds_per_sample = 1.0 / voltage_sampling_rate
-        seconds = counter * (num_samples * seconds_per_sample) + np.arange(num_samples) * seconds_per_sample
+        seconds = np.arange(num_samples) * seconds_per_sample
 
         sample = {'Time': [current_time] * num_samples, 'Seconds': seconds}
 
@@ -241,16 +226,7 @@ def main(voltage_device='Voltage_DAQ', temperature_device='Temp_Device', strain_
         sample_df = pd.DataFrame(sample)
 
         # Append the sample dataframe to the data dataframe
-        # Convert the sample dictionary to a DataFrame
-        sample_df = pd.DataFrame(sample)
-
-        #print(sample_df)
-
-        # Append the sample dataframe to the data dataframe
         data_df = data_df.append(sample_df, ignore_index=True)
-
-        # Increment the counter
-        counter += 1
 
         #Emit the sample data through the socketIO connection
         #socketIO.emit('data', sample_df.to_json())
@@ -262,7 +238,7 @@ def main(voltage_device='Voltage_DAQ', temperature_device='Temp_Device', strain_
 
         p_one_data = sample_df[['Seconds', 'Voltage Measurement 1']]
         p_one_data = p_one_data.rename(columns={'Seconds': 'Seconds', 'Voltage Measurement 1': 'P_1'})
-        json_p_zero_data = p_one_data.to_json(orient='values')
+        json_p_one_data = p_one_data.to_json(orient='values')
 
         p_two_data = sample_df[['Seconds', 'Voltage Measurement 2']]
         p_two_data = p_two_data.rename(columns={'Seconds': 'Seconds', 'Voltage Measurement 2': 'P_2'})
@@ -279,3 +255,5 @@ def main(voltage_device='Voltage_DAQ', temperature_device='Temp_Device', strain_
         strain_gauge_two_data = sample_df[['Seconds', 'Strain Measurement 1']]
         strain_gauge_two_data = strain_gauge_two_data.rename(columns={'Seconds': 'Seconds', 'Strain Measurement 1': 'Strain_1'})
         json_strain_gauge_two_data = strain_gauge_two_data.to_json(orient='values')
+
+        return json_p_zero_data, json_p_one_data, json_p_two_data, json_p_three_data, json_strain_gauge_one_data, json_strain_gauge_two_data

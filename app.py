@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, session, redirect, url_for
 from motor_vesc import VESC
 from actuator import ArduinoControl
+from DAQDataCollection import configureDAQ, readDAQData, main
 import threading
 import time 
 import os
@@ -290,6 +291,8 @@ def check_temp(vesc):
 def stop():
     #motor_control.stop()
     return 'OK'
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)

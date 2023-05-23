@@ -203,11 +203,11 @@
                 </div>
                   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
                   <script>
-                    var pzero_data = JSON.parse(json_p_zero_data);
-                    var pone_data = JSON.parse('{{ json_p_one_data }}');
-                    var ptwo_data = JSON.parse('{{ json_p_two_data }}');
-                    var pthree_data = JSON.parse('{{ json_p_three_data }}');
-
+                    var pzero_data = JSON.parse('{{ json_p_zero_data | safe }}');
+                    var pone_data = JSON.parse('{{ json_p_one_data | safe }}');
+                    var ptwo_data = JSON.parse('{{ json_p_two_data | safe }}');
+                    var pthree_data = JSON.parse('{{ json_p_three_data | safe }}');
+                    
                     var Time = pzero_data.map(function(item) {
                     return item.Seconds;
                     });
