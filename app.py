@@ -4,6 +4,9 @@ from actuator import ArduinoControl
 import threading
 import nidaqmx
 import time 
+import numpy as np
+import datetime
+import pandas as pd
 import os
 
 ### Functions for the data acquisition system ###
@@ -86,7 +89,7 @@ def readDAQData(task, samples_per_channel, channels, type):
     
 def main(voltage_device='Voltage_DAQ', temperature_device='Temp_Device', strain_device='Strain_Device',
          voltage_channels=['1', '2', '3', '4'], temperature_channels=['1'], strain_channels=['1', '2']):
-
+    
     # Define the channels and parameters for each type of data
     voltage_channels = ['ai{}'.format(i) for i in range(len(voltage_channels))]
     voltage_sampling_rate = 100
@@ -106,33 +109,22 @@ def main(voltage_device='Voltage_DAQ', temperature_device='Temp_Device', strain_
                                  ['Strain Measurement {}'.format(i) for i in range(len(strain_channels))])
 
     # Configure the DAQ for each type of data
-    configureDAQ(device_name=voltage_device, type='voltage', channels=voltage_channels,
-                 sampling_rate=voltage_sampling_rate, samples_per_channel=voltage_samples)
-    configureDAQ(device_name=temperature_device, type='temperature', channels=temperature_channels,
-                 sampling_rate=temperature_sampling_rate, samples_per_channel=temperature_samples)
-    configureDAQ(device_name=strain_device, type='strain', channels=strain_channels,
-                 sampling_rate=strain_sampling_rate, samples_per_channel=strain_samples)
+    voltage_task = configureDAQ(device_name=voltage_device, type='voltage', channels=voltage_channels,
+                                sampling_rate=voltage_sampling_rate, samples_per_channel=voltage_samples)
+    temperature_task = configureDAQ(device_name=temperature_device, type='temperature', channels=temperature_channels,
+                                    sampling_rate=temperature_sampling_rate, samples_per_channel=temperature_samples)
+    strain_task = configureDAQ(device_name=strain_device, type='strain', channels=strain_channels,
+                               sampling_rate=strain_sampling_rate, samples_per_channel=strain_samples)
 
-    while True:
-        # Read the data from the DAQ
-        voltage_data = readDAQData(voltage_task, samples_per_channel=voltage_samples, channels=voltage_channels,
-                                   type='voltage')
+    # Read the data from the DAQ
+    voltage_data = readDAQData(voltage_task, samples_per_channel=voltage_samples, channels=voltage_channels,
+                               type='voltage')
+    temperature_data = readDAQData(temperature_task, samples_per_channel=temperature_samples,
+                                   channels=temperature_channels, type='temperature')
+    strain_data = readDAQData(strain_task, samples_per_channel=strain_samples, channels=strain_channels,
+                              type='strain')
 
-        if voltage_data is None:
-            return
-
-        temperature_data = readDAQData(temperature_task, samples_per_channel=temperature_samples,
-                                       channels=temperature_channels, type='temperature')
-
-        if temperature_data is None:
-            return
-
-        strain_data = readDAQData(strain_task, samples_per_channel=strain_samples, channels=strain_channels,
-                                  type='strain')
-
-        if strain_data is None:
-            return
-
+    if voltage_data is not None and temperature_data is not None and strain_data is not None:
         # Add the data to the DataFrame
         current_time = datetime.datetime.now()
         num_samples = len(voltage_data[voltage_channels[0]])
@@ -159,13 +151,9 @@ def main(voltage_device='Voltage_DAQ', temperature_device='Temp_Device', strain_
         # Append the sample dataframe to the data dataframe
         data_df = data_df.append(sample_df, ignore_index=True)
 
-        #Emit the sample data through the socketIO connection
-        #socketIO.emit('data', sample_df.to_json())
-
         p_zero_data = sample_df[['Seconds', 'Voltage Measurement 0']]
         p_zero_data = p_zero_data.rename(columns={'Seconds': 'Seconds', 'Voltage Measurement 0': 'P_0'})
         json_p_zero_data = p_zero_data.to_json(orient='values')
-        print(json_p_zero_data)
 
         p_one_data = sample_df[['Seconds', 'Voltage Measurement 1']]
         p_one_data = p_one_data.rename(columns={'Seconds': 'Seconds', 'Voltage Measurement 1': 'P_1'})
@@ -469,18 +457,40 @@ def check_temp(vesc):
             break
         time.sleep(1)
 
+data_df = pd.DataFrame()  # Create an empty dataframe to store the collected data
+
 def update_chart():
-    # Call the main function from DAQDataCollection.py
+    global data_df  # Access the global dataframe
+
+    # Retrieve the data from the DAQ
     json_p_zero_data, json_p_one_data, json_p_two_data, json_p_three_data, json_strain_gauge_one_data, json_strain_gauge_two_data = main()
 
-    # Render the index.html template and pass the JSON data to the template
+    # Convert the JSON data to dataframes
+    p_zero_data = pd.read_json(json_p_zero_data)
+    p_one_data = pd.read_json(json_p_one_data)
+    p_two_data = pd.read_json(json_p_two_data)
+    p_three_data = pd.read_json(json_p_three_data)
+    strain_gauge_one_data = pd.read_json(json_strain_gauge_one_data)
+    strain_gauge_two_data = pd.read_json(json_strain_gauge_two_data)
+
+    # Append the dataframes to the main dataframe
+    data_df = data_df.append(p_zero_data, ignore_index=True)
+    data_df = data_df.append(p_one_data, ignore_index=True)
+    data_df = data_df.append(p_two_data, ignore_index=True)
+    data_df = data_df.append(p_three_data, ignore_index=True)
+    data_df = data_df.append(strain_gauge_one_data, ignore_index=True)
+    data_df = data_df.append(strain_gauge_two_data, ignore_index=True)
+
+    # Render the index.html template and pass the JSON data and the dataframe to the template
     return render_template('index.html',
                            json_p_zero_data=json_p_zero_data,
                            json_p_one_data=json_p_one_data,
                            json_p_two_data=json_p_two_data,
                            json_p_three_data=json_p_three_data,
                            json_strain_gauge_one_data=json_strain_gauge_one_data,
-                           json_strain_gauge_two_data=json_strain_gauge_two_data)
+                           json_strain_gauge_two_data=json_strain_gauge_two_data,
+                           data_df=data_df)
+
 
 @app.route('/export_csv', methods=['POST'])
 def export_csv():
