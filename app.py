@@ -9,7 +9,6 @@ import datetime
 import pandas as pd
 import os
 import tkinter as tk
-from tkinter import filedialog
 
 ### Functions for the data acquisition system ###
 def configureDAQ(device_name, type, channels, sampling_rate, samples_per_channel, buffer_size=10000000):
@@ -207,10 +206,11 @@ def software_manual():
 def input_parameters():
     return render_template('inputparameters.html')
 
-# Renders savedprofiles page when user clicks on the button
 @app.route('/saved_profiles')
 def saved_profiles():
-    return render_template('savedprofiles.html')
+    saved_profiles = []  # Retrieve the saved profiles from your storage mechanism
+
+    return render_template('savedprofiles.html', savedProfiles=saved_profiles)
 
 # Collects all input parameters
 @app.route('/motor_input_parameters', methods=['GET', 'POST'])
@@ -506,7 +506,7 @@ def stop():
 
     # Stop the DAQ data collection
 
-    
+
     return 'OK'
 
 

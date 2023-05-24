@@ -17,11 +17,39 @@
     </div>
 
     <div>
-        <form>
+        <form onsubmit="saveProfileName()" id="profileForm">
             <p class="text-xl font-bold ml-6 mt-4 mb-3">Name your profile:</p> 
-            <input type="text" name="name" class="ml-4 mb-4 border-2 p-3" size="100"><br>
+            <input type="text" id="profileName" name="name" class="ml-4 mb-4 border-2 p-3" size="100"><br>
         </form>
-    </div>
+    </div>    
+
+    <script>
+        function saveProfileName(event) {
+            event.preventDefault(); // Prevent form submission
+    
+            const profileNameInput = document.getElementById('profileName');
+            const profileName = profileNameInput.value.trim();
+    
+            if (profileName !== '') {
+                let savedProfiles = localStorage.getItem('savedProfiles');
+    
+                if (!savedProfiles) {
+                    savedProfiles = []; // Initialize an empty array if no profiles exist
+                } else {
+                    savedProfiles = JSON.parse(savedProfiles); // Parse existing profiles from local storage
+                }
+    
+                savedProfiles.push(profileName); // Add the new profile name
+                localStorage.setItem('savedProfiles', JSON.stringify(savedProfiles)); // Save the updated profiles
+    
+                document.getElementById('profileForm').reset(); // Reset the form
+    
+                // Redirect to the saved profiles page
+                window.location.href = '/saved_profiles';
+            }
+        }
+    </script>
+    
 
     <form action="{{url_for('motor_input_parameters')}}" method="post">
         

@@ -7,7 +7,7 @@
     <link href="{{url_for('static',filename='dist/css/output.css')}}" rel="stylesheet">
 </head>
 
-<!--Title card and Export CSV button-->
+<!--Title card-->
 <body class="bg-slate-100">
     <div class="bg-blue-900 p-3">
         <h1 class="text-slate-50 p-4 text-3xl text-center font-bold mt-4 mb-4">DMT 14C: Aerodynamic probe and data acquisition software</h1>
@@ -29,7 +29,7 @@
             <option>Profile 4</option>
         </select><br>
     </form> 
-
+    
     <div>
         <p class="text-xl font-bold ml-4 mt-5 mb-3">Inputted values</p>
         <div>
@@ -39,9 +39,14 @@
                     <option value="profile_constant_speed">Constant speed</option>
                     <option value="profile_ramp_up">Ramp up</option>
                     <option value="profile_ramp_down">Ramp down</option>
+                    {% for profileName in savedProfiles %}
+                        <option value="{{ profileName }}">{{ profileName }}</option>
+                    {% endfor %}
                 </select><br>
             </form>
-        </div> 
+        </div>
+    </div>
+    
 
         <div class="grid grid-cols-6 gap-4 ml-4 mr-4 mb-6">
             <!--Fan motor parameters-->
@@ -478,9 +483,22 @@
                     </script>
             </div>
         </div>
-    </div>  
 
+        <!-- Export CSV button -->
+        <div class="bg-white rounded p-3">
+            <p class="text-slate-500 ml-1 mb-3"></p>
+            <form action="{{ url_for('export_csv') }}" method="POST" class="text-center" style="display: flex; align-items: center;">
+                <input type="text" name="file_path" placeholder="File Path" style="flex: 1;">
+                <button class="bg-green-400 hover:bg-green-500 rounded p-4 mt-4 text-lg text-center font-bold" style="width: 7em; {% if not export_csv_enabled %}background-color: green;{% endif %}" {% if not export_csv_enabled %}disabled{% endif %}>Export To CSV</button>
+            </form>
+        </div>
+
+
+
+        </div>  
 </body>
+
+
 
 
 </html>
