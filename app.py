@@ -286,9 +286,24 @@ def check_temp(vesc):
             break
         time.sleep(1)
 
+def update_chart():
+    # Call the main function from DAQDataCollection.py
+    json_p_zero_data, json_p_one_data, json_p_two_data, json_p_three_data, json_strain_gauge_one_data, json_strain_gauge_two_data = main()
+
+    # Render the index.html template and pass the JSON data to the template
+    return render_template('index.html',
+                           json_p_zero_data=json_p_zero_data,
+                           json_p_one_data=json_p_one_data,
+                           json_p_two_data=json_p_two_data,
+                           json_p_three_data=json_p_three_data,
+                           json_strain_gauge_one_data=json_strain_gauge_one_data,
+                           json_strain_gauge_two_data=json_strain_gauge_two_data)
 
 @app.route('/stop', methods=['POST'])
 def stop():
+    # save the data to a csv file
+    save_data_to_csv()
+
     #motor_control.stop()
     return 'OK'
 
