@@ -8,6 +8,8 @@ import numpy as np
 import datetime
 import pandas as pd
 import os
+import tkinter as tk
+from tkinter import filedialog
 
 ### Functions for the data acquisition system ###
 def configureDAQ(device_name, type, channels, sampling_rate, samples_per_channel, buffer_size=10000000):
@@ -189,21 +191,11 @@ app.secret_key = "secret_key"
 # Define maximum temperature
 MAX_TEMP = 50
 
-# Function to continuously check the temperature
-# def check_temp():
-#     while True:
-#         temperature = vesc.get_temperature()
-#         if temperature > MAX_TEMP:
-#             motor_control.stop()
-#         time.sleep(1)
-
-# Start temperature checking thread
-# temp_thread = threading.Thread(target=check_temp)
-# temp_thread.start()
+export_csv_enabled = False  # Flag to track the export CSV button status
 
 @app.route('/', methods=['GET'])
 def index():
-    return render_template('index.html', input_motor_data=session.get('input_motor_data'))
+    return render_template('index.html', input_motor_data=session.get('input_motor_data'), export_csv_enabled=export_csv_enabled)
 
 # Renders softwaremanual page when user clicks on the button
 @app.route('/software_manual')
@@ -375,15 +367,6 @@ def final_speed_submission():
     return render_template('index.html')
 
 
-
-    #if profile == 'ramp_up':
-        #final_speed = int(request.form['final_speed'])
-        #motor_control.start(speed, profile, current, duty_cycle, final_speed=final_speed)
-    #else:
-        #motor_control.start(speed, profile, current, duty_cycle)
-        #print('')
-
-
 @app.route('/motor_profile_selection', methods=['GET', 'POST'])
 def motor_profile_selection():
     if request.method == ['POST']:
@@ -473,13 +456,12 @@ def update_chart():
     strain_gauge_one_data = pd.read_json(json_strain_gauge_one_data)
     strain_gauge_two_data = pd.read_json(json_strain_gauge_two_data)
 
-    # Append the dataframes to the main dataframe
-    data_df = data_df.append(p_zero_data, ignore_index=True)
-    data_df = data_df.append(p_one_data, ignore_index=True)
-    data_df = data_df.append(p_two_data, ignore_index=True)
-    data_df = data_df.append(p_three_data, ignore_index=True)
-    data_df = data_df.append(strain_gauge_one_data, ignore_index=True)
-    data_df = data_df.append(strain_gauge_two_data, ignore_index=True)
+    # Concatenate the new data horizontally
+    new_data = pd.concat([p_zero_data, p_one_data, p_two_data, p_three_data,
+                                strain_gauge_one_data, strain_gauge_two_data], axis=1)
+
+    # Concatenate the horizontally concatenated dataframe with data_df vertically
+    data_df = pd.concat([data_df, new_data], axis=0, ignore_index=True)
 
     # Render the index.html template and pass the JSON data and the dataframe to the template
     return render_template('index.html',
@@ -494,16 +476,38 @@ def update_chart():
 
 @app.route('/export_csv', methods=['POST'])
 def export_csv():
-    # Your export logic here
-    return "CSV Exported"
+    global data_df, export_csv_enabled
+
+    if export_csv_enabled:
+        # Define the file path and name on the server
+        file_path = 'data.csv'
+
+        # Export the dataframe to the file path
+        data_df.to_csv(file_path, index=False)
+
+        # Check if the file was successfully saved
+        if os.path.isfile(file_path):
+            return "CSV Exported: " + file_path
+        else:
+            return "CSV Export Failed"
+    else:
+        return "CSV Export is not enabled"
 
 @app.route('/stop', methods=['POST'])
 def stop():
-    # save the data to a csv file
+    global export_csv_enabled
 
-    #motor_control.stop()
+    # Update the export CSV button status
+    export_csv_enabled = True
+
+    # Stop the motor
+
+    # Stop the actuators
+
+    # Stop the DAQ data collection
+
+    
     return 'OK'
-
 
 
 if __name__ == '__main__':
