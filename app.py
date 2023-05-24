@@ -385,10 +385,10 @@ def reset_session():
     session.clear()
     return redirect(url_for('index'))
 
-
 @app.route('/start_all', methods=['POST'])
 def start_all():
     input_motor_data = session.get('input_motor_data', {})
+    global vesc  # Declare vesc as a global variable
     try:
         vesc = VESC(input_motor_data['vesc_port'])
     except:
@@ -399,9 +399,9 @@ def start_all():
     speed = input_motor_data['speed']
     profile = 'constant_speed'
 
-    start_motor(vesc, speed, profile, current, duty_cycle)
+    start_motor(speed, profile, current, duty_cycle)  # Remove the vesc argument
+
     start_actuators()
-    #start_daq_data_collection()
 
     return redirect(url_for('index'))
 
@@ -495,24 +495,42 @@ def export_csv():
 
 @app.route('/stop', methods=['POST'])
 def stop():
-<<<<<<< HEAD
-    # save the data to a csv file
-    #save_data_to_csv()
-=======
-    global export_csv_enabled
->>>>>>> 499331a3a36dd4a178695d5487b348b0dcf615ea
+    global export_csv_enabled, data_df, vesc  # Add vesc as a global variable
+
+    # Stop the motor
+    stop_motor()
 
     # Update the export CSV button status
     export_csv_enabled = True
 
-    # Stop the motor
-
     # Stop the actuators
-
-    # Stop the DAQ data collection
-
+    stop_actuators()
 
     return 'OK'
+
+
+def stop_motor():
+    vesc.ramp_down(0)
+
+def stop_actuators():
+
+    # Retrieve linear actuator and rotary motor positions from session
+    input_motor_data = session.get('input_motor_data', {})
+    linear_position = input_motor_data.get('linear_actuator', 0)
+    rotary_position = input_motor_data.get('rotary_motor', 0)
+
+    try:
+        arduino = ArduinoControl(input_motor_data['arduino_port'])
+    except:
+        return "Error: Arduino port connection not found.", 400
+    
+    # Move the actuators back to the 0 position
+    arduino.move_to(0, 0)  # Adjust the values accordingly if needed
+    
+    # Close the serial connection to the Arduino
+    arduino.close()
+
+    return "Actuators stopped successfully!"
 
 
 if __name__ == '__main__':
