@@ -302,7 +302,7 @@ def update_chart():
 @app.route('/stop', methods=['POST'])
 def stop():
     # save the data to a csv file
-    save_data_to_csv()
+    #save_data_to_csv()
 
     #motor_control.stop()
     return 'OK'
