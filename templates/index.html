@@ -34,7 +34,7 @@
         <p class="text-xl font-bold ml-4 mt-5 mb-3">Inputted values</p>
         <div>
             <p class="ml-4 mb-3">Select fan motor profile:</p>
-            <form action="{{url_for('motor_profile_selection')}}">
+            <form>
                 <select id="motor_profile" name="motor_profile" class="text-center bg-white border-2 rounded p-3 ml-4 mb-3" style="width: 15em">
                     <option value="profile_constant_speed">Constant speed</option>
                     <option value="profile_ramp_up">Ramp up</option>
@@ -146,10 +146,12 @@
             <div class="bg-white rounded p-3">
                 <p class="text-slate-500 ml-1 mb-3">System control</p>
                 <div class="grid grid-cols-2 gap-4">
-                    <form id="start-form" method="POST" action="/start_all">
-                        <button id="start-button" type="submit" class="bg-green-500 hover:bg-green-600 rounded p-4 ml-1 mt-4 text-lg font-bold" style="width: 5em">Start</button>
+                    <form action="{{url_for('main')}}" method="POST">
+                        <button type="submit" name="button" value="start_button" class="bg-green-500 hover:bg-green-600 rounded p-4 ml-1 mt-4 text-lg font-bold" style="width: 5em">Start</button>
                     </form>
-                    <button class="bg-red-500 hover:bg-red-600 rounded p-4 mr-1 mt-4 text-lg font-bold" style="width: 5em">Stop</button>
+                    <form action="{{url_for('main')}}" method="POST">
+                        <button type="submit" name="button" value="stop_button" class="bg-red-500 hover:bg-red-600 rounded p-4 mr-1 mt-4 text-lg font-bold" style="width: 5em">Stop</button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -160,39 +162,64 @@
 
         <div class="grid grid-cols-6 gap-4 ml-4 mr-4 mb-4">
             <div class="bg-white rounded p-4">
-                <p class="text-slate-500 ml-1 mb-3">Pressure (static & stagnation) [Pa]</p>
-                <div class="grid grid-cols-4 gap-1"> 
-                    <p class="text-center mb-2">P<sub>0</sub></p>
-                    <p class="text-center mb-2">P<sub>1</sub></p>
-                    <p class="text-center mb-2">P<sub>2</sub></p>
-                    <p class="text-center mb-2">P<sub>3</sub></p>
-                </div>
-                <div class="grid grid-cols-4 gap-1"> 
-                    <p class="text-xl text-center font-bold">0</p>
-                    <p class="text-xl text-center font-bold">0</p>
-                    <p class="text-xl text-center font-bold">0</p>
-                    <p class="text-xl text-center font-bold">0</p>
-                </div>
+                <p class="text-slate-500 ml-1 mb-3">Pressure (static) [Pa] - P<sub>0</sub></p>
+                <p class="text-2xl text-center font-bold mt-10">
+                    {% if last_values.P_0 %}
+                        {{ last_values.P_0 }}
+                    {% else %}
+                        0
+                    {% endif %}
+                </p>
             </div>
             <div class="bg-white rounded p-4">
-                <p class="text-slate-500 ml-1 mb-3">Avg flow temperature [&#176;C]</p>
-                <p class="text-2xl text-center font-bold mt-7">0</p>
+                <p class="text-slate-500 ml-1 mb-3">Pressure (differential) [Pa] - P<sub>1</sub></p>
+                <p class="text-2xl text-center font-bold mt-5 mb-4">
+                    {% if last_values.P_1 %}
+                        {{ last_values.P_1 }}
+                    {% else %}
+                        0
+                    {% endif %}            
+                </p>
             </div>
             <div class="bg-white rounded p-4">
-                <p class="text-slate-500 ml-1 mb-3">Yaw angle of velocity [&#176;]</p>
-                <p class="text-2xl text-center font-bold mt-7">0</p>
+                <p class="text-slate-500 ml-1 mb-3">Pressure (differential) [Pa] - P<sub>2</sub></p>
+                <p class="text-2xl text-center font-bold mt-5">
+                    {% if last_values.P_2 %}
+                        {{ last_values.P_2 }}
+                    {% else %}
+                        0
+                    {% endif %} 
+                </p>
             </div>
             <div class="bg-white rounded p-4">
-                <p class="text-slate-500 ml-1 mb-3">Flow average velocity [m/s]</p>
-                <p class="text-2xl text-center font-bold mt-7">0</p>
+                <p class="text-slate-500 ml-1 mb-3">Pressure (differential) [Pa] - P<sub>3</sub></p>
+                <p class="text-2xl text-center font-bold mt-5">
+                    {% if last_values.P_3 %}
+                        {{ last_values.P_3 }}
+                    {% else %}
+                        0
+                    {% endif %} 
+                </p>
             </div>
             <div class="bg-white rounded p-4">
-                <p class="text-slate-500 ml-1 mb-3">Test bench thrust [N]</p>
-                <p class="text-2xl text-center font-bold mt-7">0</p>
+                <p class="text-slate-500 ml-1 mb-3">Strain gauge 1 [N]</p>
+                <p class="text-2xl text-center font-bold mt-7">
+                    {% if last_values.Strain_0 %}
+                        {{ last_values.Strain_0 }}
+                    {% else %}
+                        0
+                    {% endif %} 
+                </p>
             </div>
-            <div class="bg-white rounded p-4">
-                <p class="text-slate-500 ml-1 mb-3">Motor temperature [&#176;C]</p>
-                <p class="text-2xl text-center font-bold mt-7">0</p>
+            <div class="bg-white rounded p-4"> 
+                <p class="text-slate-500 ml-1 mb-3">Strain gauge 2 [N]</p>
+                <p class="text-2xl text-center font-bold mt-7">
+                    {% if last_values.Strain_1 %}
+                        {{ last_values.Strain_1 }}
+                    {% else %}
+                        0
+                    {% endif %} 
+                </p>
             </div>
         </div>
     </div>

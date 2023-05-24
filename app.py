@@ -37,9 +37,11 @@ def saved_profiles():
 # Renders main page with all the inputted data
 @app.route('/', methods=['GET'])
 def index():
-    return render_template('index.html', input_motor_data=session.get('input_motor_data'), export_csv_enabled=export_csv_enabled)
+    return render_template('index.html', input_motor_data=session.get('input_motor_data'), 
+                                        last_values = session.get('last_values'))
 
 # Collects all input parameters and saves it in a dictionary
+
 @app.route('/motor_input_parameters', methods=['GET', 'POST'])
 def motor_input_parameters():
     input_motor_data = {}
@@ -187,104 +189,128 @@ def motor_input_parameters():
     input_motor_data = session.get('input_motor_data', {})
     return render_template('inputparameters.html', input_motor_data=input_motor_data)
 
+# This clears all user inputted data, effectively starting a new session
+@app.route('/reset_session', methods=['POST'])
+def reset_session():
+    session.clear()
+    return redirect(url_for('index'))
+
+@app.route('/stop_button', methods=['POST'])
+def stop_button():
+    return render_template('index.html')
+
 # Chooses motor profile
 # @app.route('/motor_profile_selection', methods=['GET', 'POST'])
 # def motor_profile_selection():
-    input_motor_data = session.get('input_motor_data', {})
-    print(input_motor_data)
-    if request.method == ['POST']:
-        motor_profile = request.form.get('motor_profile')
-        if motor_profile == 'profile_constant_speed':
-            return render_template('index.html')
-        if motor_profile == 'profile_ramp_up':
-            return render_template('index.html')
-        if motor_profile == 'profile_ramp_down':
-            return render_template('index.html')
-    return render_template('index.html', input_motor_data=input_motor_data)
+    # input_motor_data = session.get('input_motor_data', {})
+    # print(input_motor_data)
+    # if request.method == ['POST']:
+    #     motor_profile = request.form.get('motor_profile')
+    #     if motor_profile == 'profile_constant_speed':
+    #         return render_template('index.html')
+    #     if motor_profile == 'profile_ramp_up':
+    #         return render_template('index.html')
+    #     if motor_profile == 'profile_ramp_down':
+    #         return render_template('index.html')
+    # return render_template('index.html', input_motor_data=input_motor_data)
 
 
 ### Functions for the data acquisition system ###
-def configureDAQ(device_name, type, channels, sampling_rate, samples_per_channel, buffer_size=10000000):
-    """
-    Configure a DAQ task for a specific type of channel (voltage, temperature, or strain)
-    and add the specified channels to the task.
-    """
-    if type == 'voltage':
-        global voltage_task
-        voltage_task = nidaqmx.Task()
-        task = voltage_task
-    elif type == 'temperature':
-        global temperature_task
-        temperature_task = nidaqmx.Task()
-        task = temperature_task
-    elif type == 'strain':
-        global strain_task
-        strain_task = nidaqmx.Task()
-        task = strain_task
-
-    # Add the channels to the task
-    for channel in channels:
-        if type == 'voltage':
-            task.ai_channels.add_ai_voltage_chan("{}/{}".format(device_name, channel), min_val=0, max_val=5)
-        elif type == 'temperature':
-            task.ai_channels.add_ai_thrmcpl_chan("{}/{}".format(device_name, channel),
-                                                  thermocouple_type=nidaqmx.constants.ThermocoupleType.K,
-                                                  cjc_source=nidaqmx.constants.CJCSource.CONSTANT_USER_VALUE,
-                                                  cjc_val=25.0)
-        elif type == 'strain':
-            task.ai_channels.add_ai_force_bridge_two_point_lin_chan("{}/{}".format(device_name, channel),
-                                                                     min_val=-1.0, max_val=1.0,
-                                                                     units=nidaqmx.constants.ForceUnits.KILOGRAM_FORCE,
-                                                                     bridge_config=nidaqmx.constants.BridgeConfiguration.HALF_BRIDGE,
-                                                                     voltage_excit_source=nidaqmx.constants.ExcitationSource.INTERNAL,
-                                                                     voltage_excit_val=5, nominal_bridge_resistance=350.0,
-                                                                     electrical_units=nidaqmx.constants.BridgeElectricalUnits.MILLIVOLTS_PER_VOLT,
-                                                                     physical_units=nidaqmx.constants.BridgePhysicalUnits.KILOGRAM_FORCE)
-            
-    # Configure the timing of the task
-    task.timing.cfg_samp_clk_timing(sampling_rate, samps_per_chan=samples_per_channel, sample_mode=nidaqmx.constants.AcquisitionType.CONTINUOUS)
-
-    task.in_stream.input_buf_size = buffer_size
-
-def readDAQData(task, samples_per_channel, channels, type):
-    """
-    Read the data from the specified task and return a dictionary mapping the actual
-    channel names to the column data. If the channel is of type 'voltage', it converts
-    the data to differential pressure values.
-    """
-    try:
-        # Read the data from the task
-        data = task.read(number_of_samples_per_channel=samples_per_channel)
-
-        # Create a dictionary that maps the actual channel names to the column data
-        channel_data = {}
-
-        if len(channels) == 1:
-            channel_data[channels[0]] = data
-        else:
-            for i, channel in enumerate(channels):
-                if type == 'voltage':
-                    # Convert voltage data to differential pressure values
-                    voltage_data = data[i]
-                    pressure_data = []
-                    for voltage in voltage_data:
-                        output_percent = (voltage / 5.0) * 100.0
-                        pressure = ((80.0 / 12.0) * (output_percent - 10.0)) - 6.0
-                        pressure_data.append(pressure)
-                    channel_data[channel] = pressure_data
-                else:
-                    channel_data[channel] = data[i]
-
-        return channel_data
-    
-    except nidaqmx.errors.DaqReadError as e:
-        print("Error while reading DAQ data:", e)
-        return None
+global voltage_task
+global temperature_task
+global strain_task
 
 # Create main dataframe containing all required 
+@app.route('/main', methods=['GET', 'POST'])
 def main(voltage_device='Voltage_DAQ', temperature_device='Temp_Device', strain_device='Strain_Device',
          voltage_channels=['1', '2', '3', '4'], temperature_channels=['1'], strain_channels=['1', '2']):
     
+    input_motor_data = session.get('input_motor_data', {})
+    last_values = {}
+
+    button = request.form['button']
+    if button == 'start_button':
+        print('Start button pressed')
+    
+    def configureDAQ(device_name, type, channels, sampling_rate, samples_per_channel, buffer_size=10000000):
+        """
+        Configure a DAQ task for a specific type of channel (voltage, temperature, or strain)
+        and add the specified channels to the task.
+        """
+        if type == 'voltage':
+            global voltage_task
+            voltage_task = nidaqmx.Task()
+            task = voltage_task
+        elif type == 'temperature':
+            global temperature_task
+            temperature_task = nidaqmx.Task()
+            task = temperature_task
+        elif type == 'strain':
+            global strain_task
+            strain_task = nidaqmx.Task()
+            task = strain_task
+
+        # Add the channels to the task
+        for channel in channels:
+            if type == 'voltage':
+                task.ai_channels.add_ai_voltage_chan("{}/{}".format(device_name, channel), min_val=0, max_val=5)
+            elif type == 'temperature':
+                task.ai_channels.add_ai_thrmcpl_chan("{}/{}".format(device_name, channel),
+                                                    thermocouple_type=nidaqmx.constants.ThermocoupleType.K,
+                                                    cjc_source=nidaqmx.constants.CJCSource.CONSTANT_USER_VALUE,
+                                                    cjc_val=25.0)
+            elif type == 'strain':
+                task.ai_channels.add_ai_force_bridge_two_point_lin_chan("{}/{}".format(device_name, channel),
+                                                                        min_val=-1.0, max_val=1.0,
+                                                                        units=nidaqmx.constants.ForceUnits.KILOGRAM_FORCE,
+                                                                        bridge_config=nidaqmx.constants.BridgeConfiguration.HALF_BRIDGE,
+                                                                        voltage_excit_source=nidaqmx.constants.ExcitationSource.INTERNAL,
+                                                                        voltage_excit_val=5, nominal_bridge_resistance=350.0,
+                                                                        electrical_units=nidaqmx.constants.BridgeElectricalUnits.MILLIVOLTS_PER_VOLT,
+                                                                        physical_units=nidaqmx.constants.BridgePhysicalUnits.KILOGRAM_FORCE)
+                
+        # Configure the timing of the task
+        task.timing.cfg_samp_clk_timing(sampling_rate, samps_per_chan=samples_per_channel, sample_mode=nidaqmx.constants.AcquisitionType.CONTINUOUS)
+
+        task.in_stream.input_buf_size = buffer_size
+
+        return task
+
+    def readDAQData(task, samples_per_channel, channels, type):
+        """
+        Read the data from the specified task and return a dictionary mapping the actual
+        channel names to the column data. If the channel is of type 'voltage', it converts
+        the data to differential pressure values.
+        """
+        try:
+            # Read the data from the task
+            data = task.read(number_of_samples_per_channel=samples_per_channel)
+
+            # Create a dictionary that maps the actual channel names to the column data
+            channel_data = {}
+
+            if len(channels) == 1:
+                channel_data[channels[0]] = data
+            else:
+                for i, channel in enumerate(channels):
+                    if type == 'voltage':
+                        # Convert voltage data to differential pressure values
+                        voltage_data = data[i]
+                        pressure_data = []
+                        for voltage in voltage_data:
+                            output_percent = (voltage / 5.0) * 100.0
+                            pressure = ((80.0 / 12.0) * (output_percent - 10.0)) - 6.0
+                            pressure_data.append(pressure)
+                        channel_data[channel] = pressure_data
+                    else:
+                        channel_data[channel] = data[i]
+
+            return channel_data
+        
+        except nidaqmx.errors.DaqReadError as e:
+            print("Error while reading DAQ data:", e)
+            return None
+
     # Define the channels and parameters for each type of data
     voltage_channels = ['ai{}'.format(i) for i in range(len(voltage_channels))]
     voltage_sampling_rate = 100
@@ -348,29 +374,52 @@ def main(voltage_device='Voltage_DAQ', temperature_device='Temp_Device', strain_
 
         p_zero_data = sample_df[['Seconds', 'Voltage Measurement 0']]
         p_zero_data = p_zero_data.rename(columns={'Seconds': 'Seconds', 'Voltage Measurement 0': 'P_0'})
+        p_zero_data_last_value = p_zero_data.iloc[voltage_samples-1, 1]
+        last_values['P_0'] = p_zero_data_last_value
         json_p_zero_data = p_zero_data.to_json(orient='values')
 
         p_one_data = sample_df[['Seconds', 'Voltage Measurement 1']]
         p_one_data = p_one_data.rename(columns={'Seconds': 'Seconds', 'Voltage Measurement 1': 'P_1'})
+        p_one_data_last_value = p_one_data.iloc[voltage_samples-1, 1]
+        last_values['P_1'] = p_one_data_last_value
         json_p_one_data = p_one_data.to_json(orient='values')
 
         p_two_data = sample_df[['Seconds', 'Voltage Measurement 2']]
         p_two_data = p_two_data.rename(columns={'Seconds': 'Seconds', 'Voltage Measurement 2': 'P_2'})
+        p_two_data_last_value = p_two_data.iloc[voltage_samples-1, 1]
+        last_values['P_2'] = p_two_data_last_value
         json_p_two_data = p_two_data.to_json(orient='values')
 
         p_three_data = sample_df[['Seconds', 'Voltage Measurement 3']]
         p_three_data = p_three_data.rename(columns={'Seconds': 'Seconds', 'Voltage Measurement 3': 'P_3'})
+        p_three_data_last_value = p_three_data.iloc[voltage_samples-1, 1]
+        last_values['P_3'] = p_three_data_last_value
         json_p_three_data = p_three_data.to_json(orient='values')
 
-        strain_gauge_one_data = sample_df[['Seconds', 'Strain Measurement 0']]
-        strain_gauge_one_data = strain_gauge_one_data.rename(columns={'Seconds': 'Seconds', 'Strain Measurement 0': 'Strain_0'})
+        strain_gauge_zero_data = sample_df[['Seconds', 'Strain Measurement 0']]
+        strain_gauge_zero_data = strain_gauge_zero_data.rename(columns={'Seconds': 'Seconds', 'Strain Measurement 0': 'Strain_0'})
+        strain_gauge_zero_data_last_value = strain_gauge_zero_data.iloc[strain_samples-1, 1]
+        last_values['Strain_0'] = strain_gauge_zero_data_last_value
+        json_strain_gauge_zero_data = strain_gauge_zero_data.to_json(orient='values')
+
+        strain_gauge_one_data = sample_df[['Seconds', 'Strain Measurement 1']]
+        strain_gauge_one_data = strain_gauge_one_data.rename(columns={'Seconds': 'Seconds', 'Strain Measurement 1': 'Strain_1'})
+        strain_gauge_one_data_last_value = strain_gauge_one_data.iloc[strain_samples-1, 1]
+        last_values['Strain_1'] = strain_gauge_one_data_last_value
         json_strain_gauge_one_data = strain_gauge_one_data.to_json(orient='values')
 
-        strain_gauge_two_data = sample_df[['Seconds', 'Strain Measurement 1']]
-        strain_gauge_two_data = strain_gauge_two_data.rename(columns={'Seconds': 'Seconds', 'Strain Measurement 1': 'Strain_1'})
-        json_strain_gauge_two_data = strain_gauge_two_data.to_json(orient='values')
+        session['last_values'] = last_values
+        for key in last_values:
+            last_values[key] = round(last_values[key], 2)
+        print(last_values)
 
-        return json_p_zero_data, json_p_one_data, json_p_two_data, json_p_three_data, json_strain_gauge_one_data, json_strain_gauge_two_data
+    button = request.form['button']
+    if button == 'stop_button':
+        print('Stop button pressed')
+        return render_template('index.html', input_motor_data=input_motor_data, last_values=last_values)
+    
+    last_values = session.get('last_values', {})
+    return render_template('index.html', input_motor_data=input_motor_data, last_values=last_values)
 
 
 ## Stuff to do: 
@@ -386,13 +435,6 @@ def main(voltage_device='Voltage_DAQ', temperature_device='Temp_Device', strain_
 #     print('Final speed = ', final_speed)
 #     return render_template('index.html')
 
-
-
-# This clears all user inputted data, effectively starting a new session
-@app.route('/reset_session', methods=['POST'])
-def reset_session():
-    session.clear()
-    return redirect(url_for('index'))
 
 @app.route('/start_all', methods=['POST'])
 def start_all():

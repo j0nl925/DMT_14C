@@ -58,7 +58,6 @@ def configureDAQ(device_name, type, channels, sampling_rate, samples_per_channel
 
     task.in_stream.input_buf_size = buffer_size
 
-
 def readDAQData(task, samples_per_channel, channels, type):
     """
     Read the data from the specified task and return a dictionary mapping the actual
