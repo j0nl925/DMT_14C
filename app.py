@@ -495,7 +495,12 @@ def export_csv():
 
 @app.route('/stop', methods=['POST'])
 def stop():
+<<<<<<< HEAD
+    # save the data to a csv file
+    #save_data_to_csv()
+=======
     global export_csv_enabled
+>>>>>>> 499331a3a36dd4a178695d5487b348b0dcf615ea
 
     # Update the export CSV button status
     export_csv_enabled = True
