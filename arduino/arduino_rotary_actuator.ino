@@ -1,8 +1,8 @@
 #include <AccelStepper.h>
 
 // Define the pins for the rotary actuator
-const uint8_t ROTARY_STEP_PIN = 3;
-const uint8_t ROTARY_DIR_PIN = 4;
+const uint8_t ROTARY_STEP_PIN = 4;
+const uint8_t ROTARY_DIR_PIN = 3;
 
 // Define the resolution of the rotary actuator
 const float ROTARY_RESOLUTION = 1.8;
@@ -32,6 +32,9 @@ void setup() {
 }
 
 void loop() {
+  // set current position as 0
+  rotaryActuator.setCurrentPosition(0); 
+
   // read user input for rotary position
   Serial.println("Enter rotary position (degrees):");
   while (Serial.available() == 0) {
@@ -42,4 +45,9 @@ void loop() {
   // move the rotary actuator to the specified position
   rotaryActuator.moveTo(rotPosition * ROTARY_STEPS_PER_DEGREE);
   rotaryActuator.run();
+ 
 }
+
+// move to zero position after the loop
+// rotaryActuator.moveTo(0);
+
