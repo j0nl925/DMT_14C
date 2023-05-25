@@ -106,15 +106,3 @@ void loop() {
     rotaryActuator.runToPosition();
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
