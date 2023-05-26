@@ -26,6 +26,7 @@ void setup() {
   // Set the maximum speed and acceleration for the linear actuator
   linearActuator.setMaxSpeed(1000);
   linearActuator.setAcceleration(1000);
+  linearActuator.setSpeed(5);
 
   // Initialize the serial communication
   Serial.begin(9600);

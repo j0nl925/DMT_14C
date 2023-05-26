@@ -146,10 +146,10 @@
             <div class="bg-white rounded p-3">
                 <p class="text-slate-500 ml-1 mb-3">System control</p>
                 <div class="grid grid-cols-2 gap-4">
-                    <form action="{{url_for('main')}}" method="POST">
-                        <button type="submit" name="button" value="start_button" class="bg-green-500 hover:bg-green-600 rounded p-4 ml-1 mt-4 text-lg font-bold" style="width: 5em">Start</button>
+                    <form action="{{ url_for('start_all') }}" method="POST">
+                        <button type="submit" name="button" value="start_button" class="bg-green-500 hover:bg-green-600 rounded p-4 ml-1 mt-4 text-lg font-bold" style="width: 5em" {% if start_button_disabled %}disabled{% endif %}>Start</button>
                     </form>
-                    <form action="{{url_for('main')}}" method="POST">
+                    <form action="{{ url_for('stop') }}" method="POST">
                         <button type="submit" name="button" value="stop_button" class="bg-red-500 hover:bg-red-600 rounded p-4 mr-1 mt-4 text-lg font-bold" style="width: 5em">Stop</button>
                     </form>
                 </div>
@@ -159,7 +159,7 @@
 
     <div>
         <p class="text-xl font-bold ml-6 mt-5 mb-3">Key parameters</p>
-
+    
         <div class="grid grid-cols-6 gap-4 ml-4 mr-4 mb-4">
             <div class="bg-white rounded p-4">
                 <p class="text-slate-500 ml-1 mb-3">Pressure (static) [Pa] - P<sub>0</sub></p>
@@ -222,7 +222,29 @@
                 </p>
             </div>
         </div>
+        
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script>
+            $(document).ready(function() {
+                // Function to update values periodically
+                function updateValues() {
+                    $.ajax({
+                        url: "{{ url_for('update_values') }}",
+                        type: "GET",
+                        success: function(data) {
+                            // Update the values on the page
+                            $('#last_values').html(data.last_values_html);
+                        }
+                    });
+                }
+        
+                // Periodically update values every 1 second (adjust the interval as needed)
+                setInterval(updateValues, 1000);
+            });
+        </script>
+        
     </div>
+    
 
     </div>
         <p class="text-xl font-bold ml-6 mt-5 mb-3">Graphs</p>
@@ -519,13 +541,6 @@
                 <button class="bg-green-400 hover:bg-green-500 rounded p-4 mt-4 text-lg text-center font-bold" style="width: 7em; {% if not export_csv_enabled %}background-color: green;{% endif %}" {% if not export_csv_enabled %}disabled{% endif %}>Export To CSV</button>
             </form>
         </div>
-
-
-
         </div>  
 </body>
-
-
-
-
 </html>

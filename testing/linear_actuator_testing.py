@@ -33,19 +33,24 @@ class ArduinoControl:
 arduino = ArduinoControl('COM3') 
 
 try:
-    # Prompt the user for input
-    rotary_pos = int(input('Enter Linear position (mm): '))
+    while True:
+        try:
+            # Prompt the user for input
+            linear_pos = int(input('Enter linear position (mm): '))
 
-    # Move the rotary actuator to the specified position
-    arduino.move_to(rotary_pos)
+            # Move the linear actuator to the specified position
+            arduino.move_to(linear_pos)
 
-    go_back = int(input('Enter 0 to go back to original position: '))
-    if go_back == 0:
-        arduino.move_to(0)
+            go_back = int(input('Enter 0 to go back to the original position or any other value to continue: '))
+            if go_back == 0:
+                arduino.move_to(0)
+            else:
+                break  # Exit the loop if user inputs a value other than 0
 
-except ValueError as e:
-    print('Error:', str(e))
+        except ValueError as e:
+            print('Error:', str(e))
 
 finally:
     # Close the serial connection
     arduino.close()
+
