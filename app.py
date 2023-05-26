@@ -347,13 +347,13 @@ def stop_button():
     #         return render_template('index.html')
     # return render_template('index.html', input_motor_data=input_motor_data)
 
-@app.route('/main', methods=['GET', 'POST'])
+@app.route('/main', methods=['POST'])
 def main():
     global last_values
     global experiment_running
 
     # Check if the experiment is not running
-    if not experiment_running:
+    if experiment_running == False:
         return  # Exit the function if the experiment is not running
 
     # Define the channels and parameters for each type of data
@@ -394,90 +394,75 @@ def main():
     strain_task = tasks['strain']
 
     try:
-        while experiment_running:
-            # Check if the stop button is pressed
-            if request.method == 'POST':
-                button = request.form['button']
-                if button == 'stop_button':
-                    print('Stop button pressed')
-                    voltage_task.close()
-                    temperature_task.close()
-                    strain_task.close()
-                    return  # Exit the function if the stop button is pressed
+        # Read the data from the DAQ tasks and update last_values accordingly
+        voltage_data = readDAQData(voltage_task, samples_per_channel=voltage_samples, channels=voltage_channels,
+                                   type='voltage')
+        temperature_data = readDAQData(temperature_task, samples_per_channel=temperature_samples,
+                                       channels=temperature_channels, type='temperature')
+        strain_data = readDAQData(strain_task, samples_per_channel=strain_samples, channels=strain_channels,
+                                   type='strain')
 
-            # Read the data from the DAQ tasks
-            voltage_data = readDAQData(voltage_task, samples_per_channel=voltage_samples, channels=voltage_channels,
-                                       type='voltage')
-            temperature_data = readDAQData(temperature_task, samples_per_channel=temperature_samples,
-                                           channels=temperature_channels, type='temperature')
-            strain_data = readDAQData(strain_task, samples_per_channel=strain_samples, channels=strain_channels,
-                                       type='strain')
+        if voltage_data is not None and temperature_data is not None and strain_data is not None:
+            # Add the data to the DataFrame
+            current_time = datetime.datetime.now()
+            num_samples = len(voltage_data[voltage_channels[0]])
+            seconds_per_sample = 1.0 / voltage_sampling_rate
+            seconds = np.arange(num_samples) * seconds_per_sample
 
-            if voltage_data is not None and temperature_data is not None and strain_data is not None:
-                # Add the data to the DataFrame
-                current_time = datetime.datetime.now()
-                num_samples = len(voltage_data[voltage_channels[0]])
-                seconds_per_sample = 1.0 / voltage_sampling_rate
-                seconds = np.arange(num_samples) * seconds_per_sample
+            sample = {'Time': [current_time] * num_samples, 'Seconds': seconds}
 
-                sample = {'Time': [current_time] * num_samples, 'Seconds': seconds}
+            for i, channel in enumerate(voltage_channels):
+                column_name = 'Voltage Measurement {}'.format(i)
+                sample[column_name] = pd.Series(voltage_data[channel])
 
-                for i, channel in enumerate(voltage_channels):
-                    column_name = 'Voltage Measurement {}'.format(i)
-                    sample[column_name] = pd.Series(voltage_data[channel])
+            for i, channel in enumerate(temperature_channels):
+                column_name = 'Temperature Measurement {}'.format(i)
+                sample[column_name] = pd.Series(temperature_data[channel])
 
-                for i, channel in enumerate(temperature_channels):
-                    column_name = 'Temperature Measurement {}'.format(i)
-                    sample[column_name] = pd.Series(temperature_data[channel])
+            for i, channel in enumerate(strain_channels):
+                column_name = 'Strain Measurement {}'.format(i)
+                sample[column_name] = pd.Series(strain_data[channel])
 
-                for i, channel in enumerate(strain_channels):
-                    column_name = 'Strain Measurement {}'.format(i)
-                    sample[column_name] = pd.Series(strain_data[channel])
+            # Convert the sample dictionary to a DataFrame
+            sample_df = pd.DataFrame(sample)
 
-                # Convert the sample dictionary to a DataFrame
-                sample_df = pd.DataFrame(sample)
+            # Append the sample dataframe to the data dataframe
+            data_df = pd.concat([data_df, sample_df], ignore_index=True)
 
-                # Append the sample dataframe to the data dataframe
-                data_df = data_df.append(sample_df, ignore_index=True)
+            # Update the last values dictionary
+            last_values = {}
+            p_zero_data = sample_df[['Seconds', 'Voltage Measurement 0']]
+            p_zero_data = p_zero_data.rename(columns={'Seconds': 'Seconds', 'Voltage Measurement 0': 'P_0'})
+            p_zero_data_last_value = p_zero_data.iloc[voltage_samples-1, 1]
+            last_values['P_0'] = p_zero_data_last_value
 
-                # Update the last values dictionary
-                last_values = {}
-                p_zero_data = sample_df[['Seconds', 'Voltage Measurement 0']]
-                p_zero_data = p_zero_data.rename(columns={'Seconds': 'Seconds', 'Voltage Measurement 0': 'P_0'})
-                p_zero_data_last_value = p_zero_data.iloc[voltage_samples-1, 1]
-                last_values['P_0'] = p_zero_data_last_value
+            p_one_data = sample_df[['Seconds', 'Voltage Measurement 1']]
+            p_one_data = p_one_data.rename(columns={'Seconds': 'Seconds', 'Voltage Measurement 1': 'P_1'})
+            p_one_data_last_value = p_one_data.iloc[voltage_samples-1, 1]
+            last_values['P_1'] = p_one_data_last_value
 
-                p_one_data = sample_df[['Seconds', 'Voltage Measurement 1']]
-                p_one_data = p_one_data.rename(columns={'Seconds': 'Seconds', 'Voltage Measurement 1': 'P_1'})
-                p_one_data_last_value = p_one_data.iloc[voltage_samples-1, 1]
-                last_values['P_1'] = p_one_data_last_value
+            p_two_data = sample_df[['Seconds', 'Voltage Measurement 2']]
+            p_two_data = p_two_data.rename(columns={'Seconds': 'Seconds', 'Voltage Measurement 2': 'P_2'})
+            p_two_data_last_value = p_two_data.iloc[voltage_samples-1, 1]
+            last_values['P_2'] = p_two_data_last_value
 
-                p_two_data = sample_df[['Seconds', 'Voltage Measurement 2']]
-                p_two_data = p_two_data.rename(columns={'Seconds': 'Seconds', 'Voltage Measurement 2': 'P_2'})
-                p_two_data_last_value = p_two_data.iloc[voltage_samples-1, 1]
-                last_values['P_2'] = p_two_data_last_value
+            p_three_data = sample_df[['Seconds', 'Voltage Measurement 3']]
+            p_three_data = p_three_data.rename(columns={'Seconds': 'Seconds', 'Voltage Measurement 3': 'P_3'})
+            p_three_data_last_value = p_three_data.iloc[voltage_samples-1, 1]
+            last_values['P_3'] = p_three_data_last_value
 
-                p_three_data = sample_df[['Seconds', 'Voltage Measurement 3']]
-                p_three_data = p_three_data.rename(columns={'Seconds': 'Seconds', 'Voltage Measurement 3': 'P_3'})
-                p_three_data_last_value = p_three_data.iloc[voltage_samples-1, 1]
-                last_values['P_3'] = p_three_data_last_value
+            strain_gauge_zero_data = sample_df[['Seconds', 'Strain Measurement 0']]
+            strain_gauge_zero_data = strain_gauge_zero_data.rename(columns={'Seconds': 'Seconds', 'Strain Measurement 0': 'Strain_0'})
+            strain_gauge_zero_data_last_value = strain_gauge_zero_data.iloc[strain_samples-1, 1]
+            last_values['Strain_0'] = strain_gauge_zero_data_last_value
 
-                strain_gauge_zero_data = sample_df[['Seconds', 'Strain Measurement 0']]
-                strain_gauge_zero_data = strain_gauge_zero_data.rename(columns={'Seconds': 'Seconds', 'Strain Measurement 0': 'Strain_0'})
-                strain_gauge_zero_data_last_value = strain_gauge_zero_data.iloc[strain_samples-1, 1]
-                last_values['Strain_0'] = strain_gauge_zero_data_last_value
+            strain_gauge_one_data = sample_df[['Seconds', 'Strain Measurement 1']]
+            strain_gauge_one_data = strain_gauge_one_data.rename(columns={'Seconds': 'Seconds', 'Strain Measurement 1': 'Strain_1'})
+            strain_gauge_one_data_last_value = strain_gauge_one_data.iloc[strain_samples-1, 1]
+            last_values['Strain_1'] = strain_gauge_one_data_last_value
 
-                strain_gauge_one_data = sample_df[['Seconds', 'Strain Measurement 1']]
-                strain_gauge_one_data = strain_gauge_one_data.rename(columns={'Seconds': 'Seconds', 'Strain Measurement 1': 'Strain_1'})
-                strain_gauge_one_data_last_value = strain_gauge_one_data.iloc[strain_samples-1, 1]
-                last_values['Strain_1'] = strain_gauge_one_data_last_value
-
-                # Store the last values in the session
-                session['last_values'] = last_values
-
-
-            # Delay for a short period (adjust the duration as needed)
-            time.sleep(0.1)
+            # Store the last values in the session
+            session['last_values'] = last_values
 
     except Exception as e:
         print("An error occurred:", str(e))
@@ -489,7 +474,7 @@ def main():
     temperature_task.close()
     strain_task.close()
 
-    return  # Exit the function after the experiment is finished
+    return last_values
 
 
 
@@ -505,29 +490,10 @@ def start_all():
     global experiment_running
 
     # Check if the experiment is already running
-    if not experiment_running:
+    if experiment_running == False:
         input_motor_data = session.get('input_motor_data', {})
-        global vesc  # Declare vesc as a global variable
-        global arduino  # Declare arduino as a global variable
-
-        # try:
-        #     vesc = VESC(input_motor_data['vesc_port'])
-        # except:
-        #     return "Error: VESC port connection not found.", 400
-        
-        # try:
-        #     arduino = ArduinoControl(input_motor_data['arduino_port'])
-        # except:
-        #     return "Error: Arduino port connection not found.", 400
-
-        # duty_cycle = input_motor_data['duty_cycle'] / 100
-        # current = input_motor_data['current']
-        # speed = input_motor_data['speed']
-        # profile = 'constant_speed'
-
-        # start_motor(speed, profile, current, duty_cycle)  # Remove the vesc argument
-
-        # start_actuators()
+        global vesc
+        global arduino
 
         # Set the experiment_running flag to True
         experiment_running = True
@@ -535,9 +501,13 @@ def start_all():
         # Disable the start button
         session['start_button_disabled'] = True
 
-        # Call the main function to start the data acquisition
-        while experiment_running:
-            last_values = main()  # Get the updated last_values dictionary
+        # Initialize the last_values dictionary
+        last_values = {}
+
+        while experiment_running == True:
+
+            # Call the main function to start the data acquisition and get the updated last_values
+            last_values = main()
 
             # Store the last values in the session
             session['last_values'] = last_values
@@ -545,8 +515,6 @@ def start_all():
             # Update the last values dictionary for rounding and printing
             for key in last_values:
                 last_values[key] = round(last_values[key], 2)
-
-            print(last_values)
 
             # Render the template with updated values
             return render_template('index.html', input_motor_data=input_motor_data, last_values=last_values, start_button_disabled=session.get('start_button_disabled', False))
@@ -614,6 +582,7 @@ data_df = pd.DataFrame()  # Create an empty dataframe to store the collected dat
 
 @app.route('/update_values', methods=['GET'])
 def update_values():
+
     global last_values
     last_values = session.get('last_values', {})
     
@@ -624,7 +593,7 @@ def update_values():
     for key, value in last_values.items():
         last_values_html += f'<p>{key}: {value}</p>'
 
-    print(last_values)
+    #print('Updated values from update_values() {}'.format(last_values))
 
     return {'last_values_html': last_values_html}
 
