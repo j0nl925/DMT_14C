@@ -173,9 +173,7 @@ def index():
     return render_template('index.html', input_motor_data=input_motor_data, last_values=last_values, start_button_disabled=False)
 
 
-
 # Collects all input parameters and saves it in a dictionary
-
 @app.route('/motor_input_parameters', methods=['GET', 'POST'])
 def motor_input_parameters():
     input_motor_data = {}
@@ -351,18 +349,12 @@ def stop_button():
 
 @app.route('/main', methods=['GET', 'POST'])
 def main():
-    input_motor_data = session.get('input_motor_data', {})
-    last_values = {}
+    global last_values
+    global experiment_running
 
-    # Check if the stop button is pressed
-    if request.method == 'POST':
-        button = request.form['button']
-        if button == 'stop_button':
-            print('Stop button pressed')
-            voltage_task.close()
-            temperature_task.close()
-            strain_task.close()
-            return jsonify(last_values=last_values)
+    # Check if the experiment is not running
+    if not experiment_running:
+        return  # Exit the function if the experiment is not running
 
     # Define the channels and parameters for each type of data
     voltage_device = 'Voltage_DAQ'
@@ -402,7 +394,6 @@ def main():
     strain_task = tasks['strain']
 
     try:
-        print(experiment_running)
         while experiment_running:
             # Check if the stop button is pressed
             if request.method == 'POST':
@@ -412,7 +403,7 @@ def main():
                     voltage_task.close()
                     temperature_task.close()
                     strain_task.close()
-                    return jsonify(last_values=last_values)
+                    return  # Exit the function if the stop button is pressed
 
             # Read the data from the DAQ tasks
             voltage_data = readDAQData(voltage_task, samples_per_channel=voltage_samples, channels=voltage_channels,
@@ -446,75 +437,60 @@ def main():
                 # Convert the sample dictionary to a DataFrame
                 sample_df = pd.DataFrame(sample)
 
-                print(sample_df)
-
                 # Append the sample dataframe to the data dataframe
                 data_df = data_df.append(sample_df, ignore_index=True)
 
                 # Update the last values dictionary
+                last_values = {}
                 p_zero_data = sample_df[['Seconds', 'Voltage Measurement 0']]
                 p_zero_data = p_zero_data.rename(columns={'Seconds': 'Seconds', 'Voltage Measurement 0': 'P_0'})
                 p_zero_data_last_value = p_zero_data.iloc[voltage_samples-1, 1]
                 last_values['P_0'] = p_zero_data_last_value
-                json_p_zero_data = p_zero_data.to_json(orient='values')
 
                 p_one_data = sample_df[['Seconds', 'Voltage Measurement 1']]
                 p_one_data = p_one_data.rename(columns={'Seconds': 'Seconds', 'Voltage Measurement 1': 'P_1'})
                 p_one_data_last_value = p_one_data.iloc[voltage_samples-1, 1]
                 last_values['P_1'] = p_one_data_last_value
-                json_p_one_data = p_one_data.to_json(orient='values')
 
                 p_two_data = sample_df[['Seconds', 'Voltage Measurement 2']]
                 p_two_data = p_two_data.rename(columns={'Seconds': 'Seconds', 'Voltage Measurement 2': 'P_2'})
                 p_two_data_last_value = p_two_data.iloc[voltage_samples-1, 1]
                 last_values['P_2'] = p_two_data_last_value
-                json_p_two_data = p_two_data.to_json(orient='values')
 
                 p_three_data = sample_df[['Seconds', 'Voltage Measurement 3']]
                 p_three_data = p_three_data.rename(columns={'Seconds': 'Seconds', 'Voltage Measurement 3': 'P_3'})
                 p_three_data_last_value = p_three_data.iloc[voltage_samples-1, 1]
                 last_values['P_3'] = p_three_data_last_value
-                json_p_three_data = p_three_data.to_json(orient='values')
 
                 strain_gauge_zero_data = sample_df[['Seconds', 'Strain Measurement 0']]
                 strain_gauge_zero_data = strain_gauge_zero_data.rename(columns={'Seconds': 'Seconds', 'Strain Measurement 0': 'Strain_0'})
                 strain_gauge_zero_data_last_value = strain_gauge_zero_data.iloc[strain_samples-1, 1]
                 last_values['Strain_0'] = strain_gauge_zero_data_last_value
-                json_strain_gauge_zero_data = strain_gauge_zero_data.to_json(orient='values')
 
                 strain_gauge_one_data = sample_df[['Seconds', 'Strain Measurement 1']]
                 strain_gauge_one_data = strain_gauge_one_data.rename(columns={'Seconds': 'Seconds', 'Strain Measurement 1': 'Strain_1'})
                 strain_gauge_one_data_last_value = strain_gauge_one_data.iloc[strain_samples-1, 1]
                 last_values['Strain_1'] = strain_gauge_one_data_last_value
-                json_strain_gauge_one_data = strain_gauge_one_data.to_json(orient='values')
-
-                # Check if the stop button is pressed
-                button = request.form['button']
-                if button == 'stop_button':
-                    print('Stop button pressed')
-                    voltage_task.close()
-                    temperature_task.close()
-                    strain_task.close()
-                    return render_template('index.html', input_motor_data=input_motor_data, last_values=last_values, start_button_disabled=session.get('start_button_disabled', False))
 
                 # Store the last values in the session
                 session['last_values'] = last_values
 
-                # Update the last values dictionary for rounding and printing
-                for key in last_values:
-                    last_values[key] = round(last_values[key], 2)
 
-                # Render the template with updated values
-                return render_template('index.html', input_motor_data=input_motor_data, last_values=last_values, start_button_disabled=session.get('start_button_disabled', False))
+            # Delay for a short period (adjust the duration as needed)
+            time.sleep(0.1)
 
     except Exception as e:
         print("An error occurred:", str(e))
         voltage_task.close()
         temperature_task.close()
         strain_task.close()
-        return jsonify(last_values=last_values)
 
-    return jsonify(last_values=last_values)
+    voltage_task.close()
+    temperature_task.close()
+    strain_task.close()
+
+    return  # Exit the function after the experiment is finished
+
 
 
 # @app.route('/final_speed_submit', methods=['POST'])
@@ -561,9 +537,22 @@ def start_all():
 
         # Call the main function to start the data acquisition
         while experiment_running:
-            main()
+            last_values = main()  # Get the updated last_values dictionary
+
+            # Store the last values in the session
+            session['last_values'] = last_values
+
+            # Update the last values dictionary for rounding and printing
+            for key in last_values:
+                last_values[key] = round(last_values[key], 2)
+
+            print(last_values)
+
+            # Render the template with updated values
+            return render_template('index.html', input_motor_data=input_motor_data, last_values=last_values, start_button_disabled=session.get('start_button_disabled', False))
 
     return redirect(url_for('index'))
+
 
 
 def start_motor(vesc, speed, profile, current, duty_cycle):
@@ -592,64 +581,52 @@ def check_temp(vesc):
 
 data_df = pd.DataFrame()  # Create an empty dataframe to store the collected data
 
-def update_chart():
-    global data_df  # Access the global dataframe
+# def update_chart():
+#     global data_df  # Access the global dataframe
 
-    # Retrieve the data from the DAQ
-    json_p_zero_data, json_p_one_data, json_p_two_data, json_p_three_data, json_strain_gauge_one_data, json_strain_gauge_two_data = main()
+#     # Retrieve the data from the DAQ
+#     json_p_zero_data, json_p_one_data, json_p_two_data, json_p_three_data, json_strain_gauge_one_data, json_strain_gauge_two_data = main()
 
-    # Convert the JSON data to dataframes
-    p_zero_data = pd.read_json(json_p_zero_data)
-    p_one_data = pd.read_json(json_p_one_data)
-    p_two_data = pd.read_json(json_p_two_data)
-    p_three_data = pd.read_json(json_p_three_data)
-    strain_gauge_one_data = pd.read_json(json_strain_gauge_one_data)
-    strain_gauge_two_data = pd.read_json(json_strain_gauge_two_data)
+#     # Convert the JSON data to dataframes
+#     p_zero_data = pd.read_json(json_p_zero_data)
+#     p_one_data = pd.read_json(json_p_one_data)
+#     p_two_data = pd.read_json(json_p_two_data)
+#     p_three_data = pd.read_json(json_p_three_data)
+#     strain_gauge_one_data = pd.read_json(json_strain_gauge_one_data)
+#     strain_gauge_two_data = pd.read_json(json_strain_gauge_two_data)
 
-    # Concatenate the new data horizontally
-    new_data = pd.concat([p_zero_data, p_one_data, p_two_data, p_three_data,
-                                strain_gauge_one_data, strain_gauge_two_data], axis=1)
+#     # Concatenate the new data horizontally
+#     new_data = pd.concat([p_zero_data, p_one_data, p_two_data, p_three_data,
+#                                 strain_gauge_one_data, strain_gauge_two_data], axis=1)
 
-    # Concatenate the horizontally concatenated dataframe with data_df vertically
-    data_df = pd.concat([data_df, new_data], axis=0, ignore_index=True)
+#     # Concatenate the horizontally concatenated dataframe with data_df vertically
+#     data_df = pd.concat([data_df, new_data], axis=0, ignore_index=True)
 
-    # Render the index.html template and pass the JSON data and the dataframe to the template
-    return render_template('index.html',
-                           json_p_zero_data=json_p_zero_data,
-                           json_p_one_data=json_p_one_data,
-                           json_p_two_data=json_p_two_data,
-                           json_p_three_data=json_p_three_data,
-                           json_strain_gauge_one_data=json_strain_gauge_one_data,
-                           json_strain_gauge_two_data=json_strain_gauge_two_data,
-                           data_df=data_df)
+#     # Render the index.html template and pass the JSON data and the dataframe to the template
+#     return render_template('index.html',
+#                            json_p_zero_data=json_p_zero_data,
+#                            json_p_one_data=json_p_one_data,
+#                            json_p_two_data=json_p_two_data,
+#                            json_p_three_data=json_p_three_data,
+#                            json_strain_gauge_one_data=json_strain_gauge_one_data,
+#                            json_strain_gauge_two_data=json_strain_gauge_two_data,
+#                            data_df=data_df)
 
 @app.route('/update_values', methods=['GET'])
 def update_values():
-    # Retrieve the last values and start button status
+    global last_values
     last_values = session.get('last_values', {})
-    start_button_disabled = session.get('start_button_disabled', False)
-
-    # Update the last values dictionary for rounding and printing
-    for key in last_values:
-        last_values[key] = round(last_values[key], 2)
-
+    
+    # Perform any necessary processing on last_values here
+    
     # Generate the HTML for last values
     last_values_html = ''
     for key, value in last_values.items():
         last_values_html += f'<p>{key}: {value}</p>'
 
-    # Set up the SSE response
-    def generate():
-        yield f"data: {last_values_html}\n\n"
+    print(last_values)
 
-    # Create the SSE response using the generator function
-    sse_response = Response(generate(), mimetype='text/event-stream')
-    sse_response.headers.add('Cache-Control', 'no-cache')
-    sse_response.headers.add('Connection', 'keep-alive')
-
-    return sse_response
-
-
+    return {'last_values_html': last_values_html}
 
 
 @app.route('/export_csv', methods=['POST'])
