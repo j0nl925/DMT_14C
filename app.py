@@ -4,6 +4,7 @@ import threading
 import nidaqmx
 import time 
 import numpy as np
+import json
 import datetime
 import pandas as pd
 import os
@@ -569,38 +570,32 @@ def start_all():
 
     establish_arduino_connection()
 
-            # Call the main function to start the data acquisition and get the updated last_values
-            last_values = main()
+    while experiment_running == True:
 
-            # Store the last values in the session
-            session['last_values'] = last_values
+        last_values, time_data, json_p_zero_data, json_p_one_data, json_p_two_data, json_p_three_data, json_strain_gauge_zero_data, json_strain_gauge_one_data, json_motor_temp_data = main()
 
-            # Update the last values dictionary for rounding and printing
-            for key in last_values:
-                last_values[key] = round(last_values[key], 2)
+        # Call the main function to start the data acquisition and get the updated last_values
+        last_values = main()
 
-            # Render the template with updated values
-            return render_template('index.html', input_motor_data=input_motor_data, last_values=last_values, start_button_disabled=session.get('start_button_disabled', False))
+        # Store the last values in the session
+        session['last_values'] = last_values
+        session['time_data'] = time_data
+        session['json_p_zero_data'] = json_p_zero_data
+        session['json_p_one_data'] = json_p_one_data
+        session['json_p_two_data'] = json_p_two_data
+        session['json_p_three_data'] = json_p_three_data
+        session['json_strain_gauge_zero_data'] = json_strain_gauge_zero_data
+        session['json_strain_gauge_one_data'] = json_strain_gauge_one_data
+        session['json_motor_temp_data'] = json_motor_temp_data
 
+        # Update the last values dictionary for rounding and printing
+        for key in last_values:
+            last_values[key] = round(last_values[key], 2)
+
+        # Render the template with updated values
+        return render_template('index.html', input_motor_data=input_motor_data, last_values=last_values, time_data=time_data, json_p_zero_data=json_p_zero_data, json_p_one_data=json_p_one_data, json_p_two_data=json_p_two_data, json_p_three_data=json_p_three_data, json_strain_gauge_zero_data=json_strain_gauge_zero_data, json_strain_gauge_one_data=json_strain_gauge_one_data, json_motor_temp_data=json_motor_temp_data, start_button_disabled=session.get('start_button_disabled', False))
+    
     return redirect(url_for('index'))
-
-    # while experiment_running == True:
-
-    #     # Call the main function to start the data acquisition and get the updated last_values
-    #     last_values = main()
-
-    #     # Store the last values in the session
-    #     session['last_values'] = last_values
-
-    #     # Update the last values dictionary for rounding and printing
-    #     for key in last_values:
-    #         last_values[key] = round(last_values[key], 2)
-
-    #     # Render the template with updated values
-    #     return render_template('index.html', input_motor_data=input_motor_data, last_values=last_values, start_button_disabled=session.get('start_button_disabled', False))
-
-    #return redirect(url_for('index'))
-
 
 
 def start_motor(vesc, speed, profile, current, duty_cycle):
