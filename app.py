@@ -1,14 +1,15 @@
 from flask import Flask, render_template, request, session, redirect, url_for, jsonify, Response
 from motor_vesc import VESC
+from actuator import ArduinoControl
 import threading
 import nidaqmx
 import time 
 import numpy as np
-import json
 import datetime
 import pandas as pd
 import os
 import tkinter as tk
+import json
 
 voltage_task = None
 temperature_task = None
@@ -95,20 +96,20 @@ def initializeDAQTasks(voltage_device, temperature_device, strain_device,
     return tasks
 
 
-# initializeDAQTasks(
-#     voltage_device='Voltage_DAQ',
-#     temperature_device='Temp_Device',
-#     strain_device='Strain_Device',
-#     voltage_channels=['ai0', 'ai1', 'ai2', 'ai3'],
-#     temperature_channels=['ai0'],
-#     strain_channels=['ai0', 'ai1'],
-#     voltage_sampling_rate=100,
-#     voltage_samples=100,
-#     temperature_sampling_rate=100,
-#     temperature_samples=100,
-#     strain_sampling_rate=100,
-#     strain_samples=100
-# )
+initializeDAQTasks(
+    voltage_device='Voltage_DAQ',
+    temperature_device='Temp_Device',
+    strain_device='Strain_Device',
+    voltage_channels=['ai0', 'ai1', 'ai2', 'ai3'],
+    temperature_channels=['ai0'],
+    strain_channels=['ai0', 'ai1'],
+    voltage_sampling_rate=100,
+    voltage_samples=100,
+    temperature_sampling_rate=100,
+    temperature_samples=100,
+    strain_sampling_rate=100,
+    strain_samples=100
+)
 
 
 # Read the data from the specified task
@@ -283,7 +284,7 @@ def motor_input_parameters():
         if linear_actuator:
             try:
                 linear_actuator = float(linear_actuator)
-                if linear_actuator < 0 or linear_actuator > 10000:
+                if linear_actuator < 0 or linear_actuator > 100:
                     error_linear_actuator = {'field': 'linear_actuator', 'message': 'Actuator position must be between 0 and 100'}
                     linear_actuator = None
                     print(error_linear_actuator)
@@ -551,51 +552,53 @@ def move_linear_actuator(linear_position):
         arduino.move_to(linear_position)
     except ValueError as e:
         print('Error:', str(e))
-
-
 @app.route('/start_all', methods=['POST'])
 def start_all():
     global experiment_running
 
-    input_motor_data = session.get('input_motor_data', {})
+    # Check if the experiment is already running
+    if experiment_running == False:
+        input_motor_data = session.get('input_motor_data', {})
+        global vesc
+        global arduino
 
-    # Set the experiment_running flag to True
-    experiment_running = True
+        # Set the experiment_running flag to True
+        experiment_running = True
 
-    # Disable the start button
-    session['start_button_disabled'] = True
+        # Disable the start button
+        session['start_button_disabled'] = True
 
-    # Initialize the last_values dictionary
-    last_values = {}
+        # Initialize the last_values dictionary
+        last_values = {}
 
-    establish_arduino_connection()
+        establish_arduino_connection()
 
-    while experiment_running == True:
 
-        last_values, time_data, json_p_zero_data, json_p_one_data, json_p_two_data, json_p_three_data, json_strain_gauge_zero_data, json_strain_gauge_one_data, json_motor_temp_data = main()
+        while experiment_running == True:
 
-        # Call the main function to start the data acquisition and get the updated last_values
-        last_values = main()
+            # Call the main function to start the data acquisition and get the updated last_values
+            last_values, time_data, json_p_zero_data, json_p_one_data, json_p_two_data, json_p_three_data, json_strain_gauge_zero_data, json_strain_gauge_one_data, json_motor_temp_data = main()
 
-        # Store the last values in the session
-        session['last_values'] = last_values
-        session['time_data'] = time_data
-        session['json_p_zero_data'] = json_p_zero_data
-        session['json_p_one_data'] = json_p_one_data
-        session['json_p_two_data'] = json_p_two_data
-        session['json_p_three_data'] = json_p_three_data
-        session['json_strain_gauge_zero_data'] = json_strain_gauge_zero_data
-        session['json_strain_gauge_one_data'] = json_strain_gauge_one_data
-        session['json_motor_temp_data'] = json_motor_temp_data
+            # Store the last values in the session
+            session['last_values'] = last_values
+            session['time_data'] = time_data
+            session['json_p_zero_data'] = json_p_zero_data
+            session['json_p_one_data'] = json_p_one_data
+            session['json_p_two_data'] = json_p_two_data
+            session['json_p_three_data'] = json_p_three_data
+            session['json_strain_gauge_zero_data'] = json_strain_gauge_zero_data
+            session['json_strain_gauge_one_data'] = json_strain_gauge_one_data
+            session['json_motor_temp_data'] = json_motor_temp_data
+            
+            # Update the last values dictionary for rounding and printing
+            for key in last_values:
+                last_values[key] = round(last_values[key], 2)
 
-        # Update the last values dictionary for rounding and printing
-        for key in last_values:
-            last_values[key] = round(last_values[key], 2)
+            # Render the template with updated values
+            return render_template('index.html', input_motor_data=input_motor_data, last_values=last_values, time_data=time_data, json_p_zero_data=json_p_zero_data, json_p_one_data=json_p_one_data, json_p_two_data=json_p_two_data, json_p_three_data=json_p_three_data, json_strain_gauge_zero_data=json_strain_gauge_zero_data, json_strain_gauge_one_data=json_strain_gauge_one_data, json_motor_temp_data=json_motor_temp_data, start_button_disabled=session.get('start_button_disabled', False))
 
-        # Render the template with updated values
-        return render_template('index.html', input_motor_data=input_motor_data, last_values=last_values, time_data=time_data, json_p_zero_data=json_p_zero_data, json_p_one_data=json_p_one_data, json_p_two_data=json_p_two_data, json_p_three_data=json_p_three_data, json_strain_gauge_zero_data=json_strain_gauge_zero_data, json_strain_gauge_one_data=json_strain_gauge_one_data, json_motor_temp_data=json_motor_temp_data, start_button_disabled=session.get('start_button_disabled', False))
-    
     return redirect(url_for('index'))
+
 
 
 def start_motor(vesc, speed, profile, current, duty_cycle):
@@ -604,10 +607,16 @@ def start_motor(vesc, speed, profile, current, duty_cycle):
     temp_thread.start()
 
 def start_actuators():
+    # Retrieve linear actuator and rotary motor positions from session
     input_motor_data = session.get('input_motor_data', {})
     linear_position = int(input_motor_data.get('linear_actuator', 0))
-    move_linear_actuator(linear_position)
+    #rotary_position = input_motor_data.get('rotary_motor', 0)
 
+    # Move the linear actuator to the specified positions
+    try:
+        arduino.move_to(linear_position)
+    except ValueError as e:
+        return str(e), 400
 
 def check_temp(vesc):
     while True:
@@ -693,7 +702,7 @@ def stop():
     # Check if the experiment is not running
     if not experiment_running:
         return redirect(url_for('index'))  # Redirect to the main page
-
+    
     # save the data to a csv file
     # save_data_to_csv()
 
