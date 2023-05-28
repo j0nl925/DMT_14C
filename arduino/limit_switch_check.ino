@@ -1,6 +1,6 @@
-// Define the ICSP pins for the limit switches
-const uint8_t TOP_LIMIT_SWITCH = A0;     // ICSP pin 1
-const uint8_t BOTTOM_LIMIT_SWITCH = A1;  // ICSP pin 2
+// Define the pins for the limit switches
+const uint8_t TOP_LIMIT_SWITCH = 7;
+const uint8_t BOTTOM_LIMIT_SWITCH = 8;
 
 void setup() {
   // Configure the limit switch pins as inputs with pull-up resistors

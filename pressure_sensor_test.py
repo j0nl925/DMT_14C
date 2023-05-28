@@ -90,11 +90,7 @@ def main():
                 # Convert the sample dictionary to a DataFrame
                 sample_df = pd.DataFrame(sample)
 
-                sample_df.plot(x='Seconds', y='Pressure Measurement', kind = 'line')
-
                 print(sample_df)
-
-                fig.show()
 
                 # Append the sample dataframe to the data dataframe
                 data_df = pd.concat([data_df, sample_df], ignore_index = True)
