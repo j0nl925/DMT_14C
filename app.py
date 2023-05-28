@@ -9,7 +9,6 @@ import datetime
 import pandas as pd
 import os
 import tkinter as tk
-import json
 
 voltage_task = None
 temperature_task = None
