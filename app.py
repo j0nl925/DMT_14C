@@ -523,12 +523,27 @@ def start_all():
 
     establish_arduino_connection()
 
+<<<<<<< HEAD
     while experiment_running == True:
 
         last_values, time_data, json_p_zero_data, json_p_one_data, json_p_two_data, json_p_three_data, json_strain_gauge_zero_data, json_strain_gauge_one_data, json_motor_temp_data = main()
 
         # Call the main function to start the data acquisition and get the updated last_values
         last_values = main()
+=======
+            # Call the main function to start the data acquisition and get the updated last_values
+            last_values = main()
+
+            # Store the last values in the session
+            session['last_values'] = last_values
+
+            # Update the last values dictionary for rounding and printing
+            for key in last_values:
+                last_values[key] = round(last_values[key], 2)
+
+            # Render the template with updated values
+            return render_template('index.html', input_motor_data=input_motor_data, last_values=last_values, start_button_disabled=session.get('start_button_disabled', False))
+>>>>>>> parent of e6f2a4d (updated charts so they're responsive)
 
         # Store the last values in the session
         session['last_values'] = last_values
