@@ -146,10 +146,10 @@
             <div class="bg-white rounded p-3">
                 <p class="text-slate-500 ml-1 mb-3">System control</p>
                 <div class="grid grid-cols-2 gap-4">
-                    <form action="{{url_for('main')}}" method="POST">
+                    <form action="{{url_for('start_all')}}" method="POST">
                         <button type="submit" name="button" value="start_button" class="bg-green-500 hover:bg-green-600 rounded p-4 ml-1 mt-4 text-lg font-bold" style="width: 5em">Start</button>
                     </form>
-                    <form action="{{url_for('main')}}" method="POST">
+                    <form action="{{url_for('stop')}}" method="POST">
                         <button type="submit" name="button" value="stop_button" class="bg-red-500 hover:bg-red-600 rounded p-4 mr-1 mt-4 text-lg font-bold" style="width: 5em">Stop</button>
                     </form>
                 </div>
@@ -222,6 +222,33 @@
                 </p>
             </div>
         </div>
+
+        <div class="grid grid-cols-4 gap-4 ml-4 mr-4 mb-4">
+            <div class="bg-white rounded p-4">
+                <p class="text-slate-500 ml-1 mb-3">Flow velocity [m/s]></p>
+                <p class="text-2xl text-center font-bold mt-10 mb-4">
+                    0
+                </p>
+            </div>
+            <div class="bg-white rounded p-4">
+                <p class="text-slate-500 ml-1 mb-3">Yaw angle [&#176;]</p>
+                <p class="text-2xl text-center font-bold mt-10">
+                    0
+                </p>
+            </div>
+            <div class="bg-white rounded p-4">
+                <p class="text-slate-500 ml-1 mb-3">Mass flow rate [kg/s]></p>
+                <p class="text-2xl text-center font-bold mt-10">
+                    0
+                </p>
+            </div>
+            <div class="bg-white rounded p-4">
+                <p class="text-slate-500 ml-1 mb-3">Density [kg/m^3]></p>
+                <p class="text-2xl text-center font-bold mt-10">
+                    0
+                </p>
+            </div>
+        </div>
     </div>
 
     </div>
@@ -231,70 +258,104 @@
             <div class="bg-white rounded p-3">
                 <p class="text-slate-500 ml-1 mb-3">Pressure (static & stagnation) [Pa]</p>
                 <div>
-                    <canvas id="pressureChart" width="1100" height="600"></canvas>
+                    <canvas id="pressureChart" width="1500" height="1000"></canvas>
                 </div>
                   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
                   <script>
-                    var pzero_data = JSON.parse('{{ json_p_zero_data | safe }}');
-                    var pone_data = JSON.parse('{{ json_p_one_data | safe }}');
-                    var ptwo_data = JSON.parse('{{ json_p_two_data | safe }}');
-                    var pthree_data = JSON.parse('{{ json_p_three_data | safe }}');
-                    
-                    var Time = pzero_data.map(function(item) {
-                    return item.Seconds;
-                    });
+                    var ctx1 = document.getElementById('pressureChart').getContext('2d');
+                    var labels = JSON.parse('{{ time_data | safe }}');
+                    var json_p_zero_data = JSON.parse('{{ json_p_zero_data | safe }}');
+                    var json_p_one_data = JSON.parse('{{ json_p_one_data | safe }}');
+                    var json_p_two_data = JSON.parse('{{ json_p_two_data | safe }}');
+                    var json_p_three_data = JSON.parse('{{ json_p_three_data | safe }}');
 
-                    var P_0_Values = pzero_data.map(function(item) {
-                    return item.P_0;
-                    });
-
-                    var P_1_Values = pone_data.map(function(item) {
-                    return item.P_1;
-                    });
-
-                    var P_2_Values = ptwo_data.map(function(item) {
-                    return item.P_2;
-                    });
-
-                    var P_3_Values = pthree_data.map(function(item) {
-                    return item.P_3;
-                    });
-                 
-                    var ctx1 = document.getElementById('pressureChart');
                     new Chart(ctx1, {
                     type: 'line',
                     data: {
-                        labels: Time,
+                        labels,
                         datasets: [{
-                            data: P_0_Values,
-                            label: 'P_0'
+                            label: 'P_0',
+                            data: json_p_zero_data,
+                            borderWidth: 1,
                         }, {
-                            data: pone_data.map(item => item.P_1),
-                            label: 'P_1'
+                            label: 'P_1',
+                            data: json_p_one_data,
+                            borderWidth: 1,
                         }, {
-                            data: ptwo_data.map(item => item.P_2),
-                            label: 'P_2'
+                            label: 'P_2',
+                            data: json_p_two_data,
+                            borderWidth: 1,
                         }, {
-                            data: pthree_data.map(item => item.P_3),
-                            label: 'P_3'
+                            label: 'P_3',
+                            data: json_p_three_data,
+                            borderWidth: 1,
                         }
                         ]
                     },
                     options: {
                         scales: {
-                            x: {      
-                                beginAtZero: true,          
+                            x: {
+                                beginAtZero: true,
                                 title: {
                                     display: true,
                                     text: 'Time [s]',
                                 },
                             },
                             y: {
+                                beginAtZero: false,
+                                title: {
+                                    display: true,
+                                    text: 'Pressure [Pa]',
+                                }
+                            },
+                        }
+                    }
+                    });
+
+                  </script>
+            </div> 
+
+            <div class="bg-white rounded p-3">
+                <p class="text-slate-500 ml-1 mb-3">Thrust [N]</p>
+                <div>
+                    <canvas id="thrustChart" width="1500" height="1000"></canvas>
+                </div>
+                  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+                  <script>
+                    var ctx3 = document.getElementById('thrustChart').getContext('2d');
+                    var labels = JSON.parse('{{ time_data | safe }}');
+                    var json_strain_gauge_zero_data = JSON.parse('{{ json_strain_gauge_zero_data | safe }}');
+                    var json_strain_gauge_one_data = JSON.parse('{{ json_strain_gauge_one_data | safe }}');
+                    new Chart(ctx3, {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: 'Strain Gauge 1',
+                            data: json_strain_gauge_zero_data,
+                            borderWidth: 1,
+                        }, {
+                            label: 'Strain Gauge 2',
+                            data: json_strain_gauge_one_data,
+                            borderWidth: 1,
+                        }
+                        ]
+                    },
+                    options: {
+                        scales: {
+                            x: {
                                 beginAtZero: true,
                                 title: {
                                     display: true,
-                                    text: 'Pressure [Pa]'
-                                } 
+                                    text: 'Time [s]',
+                                },
+                            },
+                            y: {
+                                beginAtZero: false,
+                                title: {
+                                    display: true,
+                                    text: 'Thrust [N]',
+                                }
                             },
                         }
                     }
@@ -303,214 +364,56 @@
             </div>
 
             <div class="bg-white rounded p-3">
-                <p class="text-slate-500 ml-1 mb-3">Average flow temperature [&#176;C]</p>
+                <p class="text-slate-500 ml-1 mb-3">Motor temperature [&#176;C]</p>
                 <div>
-                    <canvas id="flowtempChart" width="1100" height="600"></canvas>
+                    <canvas id="motortempChart" width="1500" height="1000"></canvas>
                   </div>
                   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
                   <script>
-                        const ctx2 = document.getElementById('flowtempChart');
-                        new Chart(ctx2, {
-                        type: 'line',
-                        data: {
-                            labels: [0, 1, 2, 3, 4, 5],
-                            datasets: [{
-                                data: [10, 1, 3, 9, 2, 5],
-                                label: 'Flow temp',
-                                borderWidth: 1,
-                            },
-                            ]
-                        },
-                        options: {
-                            scales: {
-                                x: {      
-                                    beginAtZero: true,          
-                                    title: {
-                                        display: true,
-                                        text: 'Time [s]',
-                                    },
-                                },
-                                y: {
-                                    beginAtZero: true,
-                                    title: {
-                                        display: true,
-                                        text: 'Temperature [\xB0C]'
-                                    } 
-                                },
-                            }
+                    var ctx3 = document.getElementById('motortempChart').getContext('2d');
+                    var labels = JSON.parse('{{ time_data | safe }}');
+                    var json_motor_temp_data = JSON.parse('{{ json_motor_temp_data | safe }}');
+                    new Chart(ctx3, {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: 'Motor temperature',
+                            data: json_motor_temp_data,
+                            borderWidth: 1,
                         }
-                        });
-                  </script>
-            </div>  
-
-            <div class="bg-white rounded p-3">
-                <p class="text-slate-500 ml-1 mb-3">Velocity [m/s]</p>
-                <div>
-                    <canvas id="velocityChart" width="1100" height="600"></canvas>
-                  </div>
-                  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-                  <script>
-                        const ctx3 = document.getElementById('velocityChart');
-                        new Chart(ctx3, {
-                        type: 'line',
-                        data: {
-                            labels: [0, 1, 2, 3, 4, 5],
-                            datasets: [{
-                                data: [12, 13, 6, 5, 8, 3],
-                                label: 'Velocity',
-                                borderWidth: 1,
+                        ]
+                    },
+                    options: {
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Time [s]',
+                                },
                             },
-                            ]
-                        },
-                        options: {
-                            scales: {
-                                x: {      
-                                    beginAtZero: true,          
-                                    title: {
-                                        display: true,
-                                        text: 'Time [s]',
-                                    },
-                                },
-                                y: {
-                                    beginAtZero: true,
-                                    title: {
-                                        display: true,
-                                        text: 'Velocity [m/s]'
-                                    } 
-                                },
-                            }
+                            y: {
+                                beginAtZero: false,
+                                title: {
+                                    display: true,
+                                    text: 'Temperature [\xB0C]',
+                                }
+                            },
                         }
-                        });
+                    }
+                    });
                   </script>
-                </div>
             </div>
         </div>
 
         <div class="grid grid-cols-3 gap-4 ml-4 mr-4 mb-4">
-            <div class="bg-white rounded p-3">
-                <p class="text-slate-500 ml-1 mb-3">Fan mass flow</p>
-                <div>
-                    <canvas id="fanmassflowChart" width="1100" height="600"></canvas>
-                  </div>
-                  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-                  <script>
-                        const ctx4 = document.getElementById('fanmassflowChart');
-                        new Chart(ctx4, {
-                        type: 'line',
-                        data: {
-                            labels: [0, 1, 2, 3, 4, 5],
-                            datasets: [{
-                                data: [12, 19, 3, 5, 2, 3],
-                                label: 'Fan mass flow',
-                                borderWidth: 1,
-                            },
-                            ]
-                        },
-                        options: {
-                            scales: {
-                                x: {      
-                                    beginAtZero: true,          
-                                    title: {
-                                        display: true,
-                                        text: 'Time [s]',
-                                    },
-                                },
-                                y: {
-                                    beginAtZero: true,
-                                    title: {
-                                        display: true,
-                                        text: 'Mass flow [m/s^2]',
-                                    } 
-                                },
-                            }
-                        }
-                        });
-                  </script>
-            </div>
-
-            <div class="bg-white rounded p-3">
-                <p class="text-slate-500 ml-1 mb-3">Thrust [N]</p>
-                <div>
-                    <canvas id="thrustChart" width="1100" height="600"></canvas>
-                    </div>
-                    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-                    <script>
-                        const ctx5 = document.getElementById('thrustChart');
-                        new Chart(ctx5, {
-                        type: 'line',
-                        data: {
-                            labels: [0, 1, 2, 3, 4, 5],
-                            datasets: [{
-                                data: [12, 19, 3, 5, 2, 3],
-                                label: 'Thrust',
-                                borderWidth: 1,
-                            },
-                            ]
-                        },
-                        options: {
-                            scales: {
-                                x: {      
-                                    beginAtZero: true,          
-                                    title: {
-                                        display: true,
-                                        text: 'Time [s]',
-                                    },
-                                },
-                                y: {
-                                    beginAtZero: true,
-                                    title: {
-                                        display: true,
-                                        text: 'Thrust [N]'
-                                    } 
-                                },
-                            }
-                        }
-                        });
-                    </script>
-            </div>
-
-            <div class="bg-white rounded p-3">
-                <p class="text-slate-500 ml-1 mb-3">Motor temperature</p>
-                <div>
-                    <canvas id="mtempChart" width="1100" height="600"></canvas>
-                    </div>
-                    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-                    <script>
-                        const ctx6 = document.getElementById('mtempChart');
-                        new Chart(ctx6, {
-                        type: 'line',
-                        data: {
-                            labels: [0, 1, 2, 3, 4, 5],
-                            datasets: [{
-                                data: [12, 19, 3, 5, 2, 3],
-                                label: 'Motor temp',
-                                borderWidth: 1,
-                            },
-                            ]
-                        },
-                        options: {
-                            scales: {
-                                x: {      
-                                    beginAtZero: true,          
-                                    title: {
-                                        display: true,
-                                        text: 'Time [s]',
-                                    },
-                                },
-                                y: {
-                                    beginAtZero: true,
-                                    title: {
-                                        display: true,
-                                        text: 'Temperature [\xB0C]'
-                                    } 
-                                },
-                            }
-                        }
-                        });
-                    </script>
-            </div>
+            <div class="bg-white rounded p-3"></div>
+            <div class="bg-white rounded p-3"></div>
+            <div class="bg-white rounded p-3"></div>
         </div>
-
+    </div>
+           
         <!-- Export CSV button -->
         <div class="bg-white rounded p-3">
             <p class="text-slate-500 ml-1 mb-3"></p>
@@ -519,10 +422,6 @@
                 <button class="bg-green-400 hover:bg-green-500 rounded p-4 mt-4 text-lg text-center font-bold" style="width: 7em; {% if not export_csv_enabled %}background-color: green;{% endif %}" {% if not export_csv_enabled %}disabled{% endif %}>Export To CSV</button>
             </form>
         </div>
-
-
-
-        </div>  
 </body>
 
 
