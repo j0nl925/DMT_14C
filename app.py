@@ -543,6 +543,9 @@ def start_all():
 
             # Render the template with updated values
             return render_template('index.html', input_motor_data=input_motor_data, last_values=last_values, start_button_disabled=session.get('start_button_disabled', False))
+<<<<<<< HEAD
+>>>>>>> parent of e6f2a4d (updated charts so they're responsive)
+=======
 >>>>>>> parent of e6f2a4d (updated charts so they're responsive)
 
         # Store the last values in the session
