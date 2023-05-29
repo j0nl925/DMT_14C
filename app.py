@@ -527,31 +527,32 @@ def start_all():
 
         establish_arduino_connection()
 
+        start_actuators()
 
 
-            # Call the main function to start the data acquisition and get the updated last_values
-            last_values, time_data, json_p_zero_data, json_p_one_data, json_p_two_data, json_p_three_data, json_strain_gauge_zero_data, json_strain_gauge_one_data, json_motor_temp_data = main()
+        # Call the main function to start the data acquisition and get the updated last_values
+        last_values, time_data, json_p_zero_data, json_p_one_data, json_p_two_data, json_p_three_data, json_strain_gauge_zero_data, json_strain_gauge_one_data, json_motor_temp_data = main()
 
-            # # Call the main function to start the data acquisition and get the updated last_values
-            # last_values, time_data, json_p_zero_data, json_p_one_data, json_p_two_data, json_p_three_data, json_strain_gauge_zero_data, json_strain_gauge_one_data, json_motor_temp_data = main()
+        # # Call the main function to start the data acquisition and get the updated last_values
+        # last_values, time_data, json_p_zero_data, json_p_one_data, json_p_two_data, json_p_three_data, json_strain_gauge_zero_data, json_strain_gauge_one_data, json_motor_temp_data = main()
 
-            # # Store the last values in the session
-            # session['last_values'] = last_values
-            # session['time_data'] = time_data
-            # session['json_p_zero_data'] = json_p_zero_data
-            # session['json_p_one_data'] = json_p_one_data
-            # session['json_p_two_data'] = json_p_two_data
-            # session['json_p_three_data'] = json_p_three_data
-            # session['json_strain_gauge_zero_data'] = json_strain_gauge_zero_data
-            # session['json_strain_gauge_one_data'] = json_strain_gauge_one_data
-            # session['json_motor_temp_data'] = json_motor_temp_data
-            
-            # # Update the last values dictionary for rounding and printing
-            # for key in last_values:
-            #     last_values[key] = round(last_values[key], 2)
+        # # Store the last values in the session
+        # session['last_values'] = last_values
+        # session['time_data'] = time_data
+        # session['json_p_zero_data'] = json_p_zero_data
+        # session['json_p_one_data'] = json_p_one_data
+        # session['json_p_two_data'] = json_p_two_data
+        # session['json_p_three_data'] = json_p_three_data
+        # session['json_strain_gauge_zero_data'] = json_strain_gauge_zero_data
+        # session['json_strain_gauge_one_data'] = json_strain_gauge_one_data
+        # session['json_motor_temp_data'] = json_motor_temp_data
+        
+        # # Update the last values dictionary for rounding and printing
+        # for key in last_values:
+        #     last_values[key] = round(last_values[key], 2)
 
-            # Render the template with updated values
-            #return render_template('index.html', input_motor_data=input_motor_data, last_values=last_values, time_data=time_data, json_p_zero_data=json_p_zero_data, json_p_one_data=json_p_one_data, json_p_two_data=json_p_two_data, json_p_three_data=json_p_three_data, json_strain_gauge_zero_data=json_strain_gauge_zero_data, json_strain_gauge_one_data=json_strain_gauge_one_data, json_motor_temp_data=json_motor_temp_data, start_button_disabled=session.get('start_button_disabled', False))
+        # Render the template with updated values
+        #return render_template('index.html', input_motor_data=input_motor_data, last_values=last_values, time_data=time_data, json_p_zero_data=json_p_zero_data, json_p_one_data=json_p_one_data, json_p_two_data=json_p_two_data, json_p_three_data=json_p_three_data, json_strain_gauge_zero_data=json_strain_gauge_zero_data, json_strain_gauge_one_data=json_strain_gauge_one_data, json_motor_temp_data=json_motor_temp_data, start_button_disabled=session.get('start_button_disabled', False))
 
     return redirect(url_for('index'))
 
