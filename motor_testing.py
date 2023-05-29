@@ -1,7 +1,6 @@
 from unittest import TestCase, TestLoader, TextTestRunner
 
 
-
 class TestPacket(TestCase):
     def exact_single_frame(self, length):
         """
