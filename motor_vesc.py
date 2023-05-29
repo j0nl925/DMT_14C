@@ -3,16 +3,26 @@
 
 import pyvesc
 import time
+import serial
+
 
 class VESC():
     def __init__(self, port):
-        # Initialize the pyvesc library with the given port
+        # Open the serial port with the specified baud rate and timeout
+        # Initialize the pyvesc library with the port string
         self.vesc = pyvesc.VESC(port)
         # Initialize motor parameters
         self.speed = 0
         self.current = 0
         self.duty_cycle = 0
         self.state = 'stopped'
+
+    def set_duty_cycle(self, duty_cycle):
+        self.serial_port.write(f"duty {duty_cycle}\n".encode())
+
+    def get_measurements(self):
+        return self.serial_port.readline().decode().strip()
+
 
     def start_motor(self, speed, profile, current, duty_cycle):
         # Store the motor parameters
