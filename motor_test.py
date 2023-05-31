@@ -1,66 +1,126 @@
-# Test script 1: Start the motor at a constant speed, then stop it after 5 seconds
-
-import serial
 import time
 import csv
-
-class VESC():
-    def __init__(self, port):
-        self.serial_port = serial.Serial(port, baudrate=115200, timeout=0.1)
-        self.speed = 0
-        self.current = 0
-        self.duty_cycle = 0
-        self.state = 'stopped'
-
-    def set_duty_cycle(self, duty_cycle):
-        command = f"duty {duty_cycle}\n"
-        self.serial_port.write(command.encode())
-
-    def get_speed(self):
-        self.serial_port.write(b"get_speed\n")
-        response = self.serial_port.readline().decode().strip()
-        return int(response)
+import serial
+import pyvesc
+from pyvesc import VESC
+import pyvesc
+from pyvesc.VESC.messages import  Alive, SetDutyCycle, SetRPM, GetValues
 
 serialport = "COM4"  # Replace "COM4" with the actual port of your VESC
 
-data_points = []  # Store the data points in a list
+# with serial.Serial(serialport, 115200, timeout=0.05) as ser:
+#     try:
+#         for i in range(3,10):
+#             ser.write(pyvesc.encode(SetDutyCycle(duty=i/100)))
 
-with serial.Serial(serialport, baudrate=115200, timeout=0.1) as ser:
-    vesc = VESC(ser.port)
+#     except KeyboardInterrupt:
+#         ser.write(pyvesc.encode(SetDutyCycle(duty=0)))
 
-    for i in range(5, 20):
-        try:
-            vesc.set_duty_cycle(i / 100)
-            time.sleep(5)  # Allow time for the motor to stabilize
 
-            max_attempts = 100
-            attempt = 0
-            while attempt < max_attempts:
-                speed = vesc.get_speed()
-                print(speed)
-                if speed != 0:
-                    data_points.append([i / 100, speed])
-                    break
-                else:
-                    attempt += 1
-                    continue
 
-            if attempt >= max_attempts:
-                print("Exceeded maximum attempts to retrieve speed.")
-                break
+#data_points = []  # Store the data points in a list
 
-        finally:
-            vesc.set_duty_cycle(0)
+with serial.Serial(serialport, 115200, timeout=0.1) as ser:
+    try:
+        for i in range(4, 10):
+            print(i)
+           # Send heartbeat command
+            # heartbeat_command = pyvesc.VESCMessage(command=HEARTBEAT_CMD_ID)
+            # ser.write(heartbeat_command.encode())            # ser.write(pyvesc.encode(SetRPM(i)))  # Set duty cycle using raw VESC command
 
-filename = "motor_ramp_data.csv"  # Specify the desired filename
-header = ["Duty Cycle", "Speed"]  # Specify the desired header for the CSV columns
+            ser.write(pyvesc.encode(Alive())) # Send heartbeat
+            ser.write(pyvesc.encode(SetDutyCycle(i/100)))  # Send command to get values
+            ser.write(pyvesc.encode_request(GetValues))
 
-with open(filename, "w", newline="") as csvfile:
-    writer = csv.writer(csvfile)
-    writer.writerow(header)
-    writer.writerows(data_points)
 
-print("Data saved to", filename)
+            (response, consumed) = pyvesc.decode(ser.read(61))
+
+            # Print out the values
+            try:
+                print(response.rpm)
+            except:
+                print("No RPM data")
+            
+            time.sleep(5)
+        
+
+    except KeyboardInterrupt:
+        ser.write(pyvesc.encode(SetRPM(0)))  # Set duty cycle to 0
+
+
+
+# filename = "motor_ramp_data.csv"  # Specify the desired filename
+# header = ["Speed", "Temperature"]  # Specify the desired header for the CSV columns
+
+# with open(filename, "w", newline="") as csvfile:
+#     writer = csv.writer(csvfile)
+#     writer.writerow(header)
+#     writer.writerows(data_points)
+
+# print("Data saved to", filename)
+# Test script 1: Start the motor at a constant speed, then stop it after 5 seconds
+
+# import serial
+# import time
+# import csv
+
+# class VESC():
+#     def __init__(self, port):
+#         self.serial_port = serial.Serial(port, baudrate=115200, timeout=0.1)
+#         self.speed = 0
+#         self.current = 0
+#         self.duty_cycle = 0
+#         self.state = 'stopped'
+
+#     def set_duty_cycle(self, duty_cycle):
+#         command = f"duty {duty_cycle}\n"
+#         self.serial_port.write(command.encode())
+
+#     def get_speed(self):
+#         self.serial_port.write(b"get_speed\n")
+#         response = self.serial_port.readline().decode().strip()
+#         return int(response)
+
+# serialport = "COM4"  # Replace "COM4" with the actual port of your VESC
+
+# data_points = []  # Store the data points in a list
+
+# with serial.Serial(serialport, baudrate=115200, timeout=0.1) as ser:
+#     vesc = VESC(ser.port)
+
+#     for i in range(5, 20):
+#         try:
+#             vesc.set_duty_cycle(i / 100)
+#             time.sleep(5)  # Allow time for the motor to stabilize
+
+#             max_attempts = 100
+#             attempt = 0
+#             while attempt < max_attempts:
+#                 speed = vesc.get_speed()
+#                 print(speed)
+#                 if speed != 0:
+#                     data_points.append([i / 100, speed])
+#                     break
+#                 else:
+#                     attempt += 1
+#                     continue
+
+#             if attempt >= max_attempts:
+#                 print("Exceeded maximum attempts to retrieve speed.")
+#                 break
+
+#         finally:
+#             vesc.set_duty_cycle(0)
+
+# filename = "motor_ramp_data.csv"  # Specify the desired filename
+# header = ["Duty Cycle", "Speed"]  # Specify the desired header for the CSV columns
+
+# with open(filename, "w", newline="") as csvfile:
+#     writer = csv.writer(csvfile)
+#     writer.writerow(header)
+#     writer.writerows(data_points)
+
+# print("Data saved to", filename)
 
 
 
