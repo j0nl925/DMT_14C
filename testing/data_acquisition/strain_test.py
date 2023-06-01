@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import datetime
 import sys
+import matplotlib.pyplot as plt
 import traceback
 
 strain_task = None
@@ -16,11 +17,11 @@ def configureDAQ(device_name, type, channels, sampling_rate, samples_per_channel
         if type == 'strain':
             try:
                 task.ai_channels.add_ai_force_bridge_two_point_lin_chan(full_channel_name,
-                                                                        min_val=-1.0, max_val=1.0,
+                                                                        min_val=-100.0, max_val=100.0,
                                                                         units=nidaqmx.constants.ForceUnits.KILOGRAM_FORCE,
-                                                                        bridge_config=nidaqmx.constants.BridgeConfiguration.HALF_BRIDGE,
+                                                                        bridge_config=nidaqmx.constants.BridgeConfiguration.FULL_BRIDGE,
                                                                         voltage_excit_source=nidaqmx.constants.ExcitationSource.INTERNAL,
-                                                                        voltage_excit_val=5, nominal_bridge_resistance=350.0,
+                                                                        voltage_excit_val=5, nominal_bridge_resistance=1000.0,
                                                                         electrical_units=nidaqmx.constants.BridgeElectricalUnits.MILLIVOLTS_PER_VOLT,
                                                                         physical_units=nidaqmx.constants.BridgePhysicalUnits.KILOGRAM_FORCE)
 
@@ -59,29 +60,30 @@ def readDAQData(task, samples_per_channel, channels, type):
         channel_data = {}
         if len(channels) == 1:
                 channel_data[channels[0]] = data
-            else:
-                for i, channel in enumerate(channels):
-                    if type == 'strain':
-                        channel_data[channel] = data[i]
+        else:
+            for i, channel in enumerate(channels):
+                if type == 'strain':
+                    channel_data[channel] = data[i]
 
-            return channel_data
+        return channel_data
 
     except nidaqmx.errors.DaqReadError as e:
         print("Error while reading DAQ data:", e)
         return None
     
-def main():
+
+def main(offset_1=0,  offset_2=0):
     global experiment_running
 
     # Define the channels and parameters for strain data
-    strain_device = 'Strain_Device'
-    strain_channels = ['ai0']
-    strain_sampling_rate = 100
-    strain_samples = 100
-
+    strain_device = 'cDAQ2Mod1'
+    strain_channels = ['ai0', 'ai1']
+    strain_sampling_rate = 2000
+    strain_samples = 500
 
     # Create empty pandas dataframe to store data
     data_df = pd.DataFrame(columns=['Strain Measurement {}'.format(i) for i in range(len(strain_channels))])
+
 
     # Initialize the DAQ tasks
     tasks = initializeDAQTasks(strain_device=strain_device,
@@ -91,6 +93,10 @@ def main():
 
     strain_task = tasks['strain']
 
+    # Initialize a matplotlib figure
+    plt.figure()
+    plt.show(block=False)
+
 
     try:
         while experiment_running:
@@ -98,6 +104,8 @@ def main():
             # Read the data from the DAQ tasks
             strain_data = readDAQData(strain_task, samples_per_channel=strain_samples, channels=strain_channels,
                                     type='strain')
+            
+            print(strain_data)
 
             if strain_data is not None:
                 # Add the data to the DataFrame
@@ -115,12 +123,44 @@ def main():
                 # Convert the sample dictionary to a DataFrame
                 sample_df = pd.DataFrame(sample)
 
-                print(sample_df)
+                # Apply offsets to each strain measurement column
+                sample_df['Strain Measurement 0'] = sample_df['Strain Measurement 0'].apply(lambda x: -1 * (x+offset_1)).rolling(20).mean()
+                sample_df['Strain Measurement 1'] = sample_df['Strain Measurement 1'].apply(lambda x: x +offset_2).rolling(20).mean()
+                sample_df['Total Strain'] = sample_df['Strain Measurement 0'] + sample_df['Strain Measurement 1']
 
-                # Append the sample dataframe to the data dataframe
+
+                # Append the sample dataframe to the data  dataframe
                 data_df = data_df.append(sample_df, ignore_index=True)
+                
+                # Plotting only the last 100 samples
+                data_df_last_100 = data_df.tail(strain_samples)  # Get the last 100 samples
+
+                # Clear the figure for the new plot
+                plt.clf()
+
+                for i, channel in enumerate(strain_channels):
+                    plt.title('Test 2')
+                    plt.plot(data_df_last_100['Seconds'], data_df_last_100['Strain Measurement {}'.format(i)], label='Strain Measurement {}'.format(i))
+                    plt.plot(data_df_last_100['Seconds'], data_df_last_100['Total Strain'], label='Total Strain')
+
+                # Add a legend
+                plt.legend(loc='upper right')
+
+                # Pause to allow for dynamic plotting
+                plt.pause(0.1)
+
 
     except:
         print("Error while running experiment:", sys.exc_info()[0])
         traceback.print_exc()
         experiment_running = False
+
+
+    finally:
+        print("Experiment finished")
+        strain_task.close()
+        plt.close()
+
+
+if __name__ == "__main__":
+    main(offset_1=-0.5, offset_2 = -3.5)
