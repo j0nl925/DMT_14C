@@ -8,32 +8,16 @@ from pyvesc.VESC.messages import  Alive, SetDutyCycle, SetRPM, GetValues
 
 serialport = "COM4"  # Replace "COM4" with the actual port of your VESC
 
-# with serial.Serial(serialport, 115200, timeout=0.05) as ser:
-#     try:
-#         for i in range(3,10):
-#             ser.write(pyvesc.encode(SetDutyCycle(duty=i/100)))
-
-#     except KeyboardInterrupt:
-#         ser.write(pyvesc.encode(SetDutyCycle(duty=0)))
-
-
-
-#data_points = []  # Store the data points in a list
-
 with serial.Serial(serialport, 115200, timeout=0.1) as ser:
     try:
         for i in range(4, 10):
             print(i)
-           # Send heartbeat command
-            # heartbeat_command = pyvesc.VESCMessage(command=HEARTBEAT_CMD_ID)
-            # ser.write(heartbeat_command.encode())            # ser.write(pyvesc.encode(SetRPM(i)))  # Set duty cycle using raw VESC command
-
             ser.write(pyvesc.encode(Alive())) # Send heartbeat
             ser.write(pyvesc.encode(SetDutyCycle(i/100)))  # Send command to get values
             ser.write(pyvesc.encode_request(GetValues))
 
 
-            (response, consumed) = pyvesc.decode(ser.read(61))
+            (response, consumed) = pyvesc.decode(ser.read(100))
 
             # Print out the values
             try:
@@ -46,6 +30,9 @@ with serial.Serial(serialport, 115200, timeout=0.1) as ser:
 
     except KeyboardInterrupt:
         ser.write(pyvesc.encode(SetRPM(0)))  # Set duty cycle to 0
+
+
+
 
 
 
