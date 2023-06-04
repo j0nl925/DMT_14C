@@ -1,224 +1,202 @@
 #include <AccelStepper.h>
 
-// Common definitions
-#define MAX_SPEED 500
-#define ACCELERATION 500
-#define SPEED 400
+// Define the pins for the linear actuator
+const uint8_t LINEAR_STEP_PIN = 3;
+const uint8_t LINEAR_DIR_PIN = 2;
+const uint8_t BOTTOM_LIMIT_SWITCH = 7;
+const uint8_t TOP_LIMIT_SWITCH = 8;
 
-// Rotary actuator definitions
-#define ROTARY_STEP_PIN 4
-#define ROTARY_DIR_PIN 5
-#define ROTARY_STEPS_PER_REVOLUTION 200
-#define ROTARY_STEPS_PER_DEGREE (ROTARY_STEPS_PER_REVOLUTION / 360.0)
-AccelStepper rotaryStepper(AccelStepper::DRIVER, ROTARY_STEP_PIN, ROTARY_DIR_PIN);
+// Define the pins for the rotary stepper motor
+const uint8_t ROTARY_STEP_PIN = 4;
+const uint8_t ROTARY_DIR_PIN = 5;
 
-// Linear actuator definitions
-#define LINEAR_STEP_PIN 3
-#define LINEAR_DIR_PIN 2
-#define BOTTOM_LIMIT_SWITCH 7
-#define TOP_LIMIT_SWITCH 8
-#define LINEAR_RESOLUTION 1.8
-#define LINEAR_STROKE 100.0
-#define LINEAR_STEPS_PER_REVOLUTION 200
-#define LINEAR_STEPS_PER_MM (LINEAR_STEPS_PER_REVOLUTION / LINEAR_STROKE)
+// Define the resolution of the linear actuator
+const float LINEAR_RESOLUTION = 1.8;
+
+// Define the stroke of the linear actuator
+const float LINEAR_STROKE = 100.0;
+
+// Define the number of steps per revolution for the linear actuator
+const int LINEAR_STEPS_PER_REVOLUTION = 200;
+
+// Define the number of steps per mm for the linear actuator
+const float LINEAR_STEPS_PER_MM = LINEAR_STEPS_PER_REVOLUTION / LINEAR_STROKE;
+
+// Define the number of steps per revolution for the rotary stepper motor
+const int ROTARY_STEPS_PER_REVOLUTION = 200;
+
+// Define the number of steps per degree for the rotary stepper motor
+const float ROTARY_STEPS_PER_DEGREE = ROTARY_STEPS_PER_REVOLUTION / 360.0;
+
+// Define the linear actuator
 AccelStepper linearActuator(AccelStepper::DRIVER, LINEAR_STEP_PIN, LINEAR_DIR_PIN);
 
-// State control
-#define STATE_WAITING 0
-#define STATE_MOVE_LINEAR 1
-#define STATE_MOVE_ROTARY 2
-int state = STATE_WAITING;
+// Define the rotary stepper motor
+AccelStepper rotaryStepper(AccelStepper::DRIVER, ROTARY_STEP_PIN, ROTARY_DIR_PIN);
 
-// Position variables
-int targetRotaryPosition = 0;
+// Define initial position for the linear actuator
 int linPosition = 0;
+
+// Define zero position for the rotary stepper motor
 int zeroPosition = 0;
 
+// Variable to store the target position for the linear actuator
+int targetLinearPosition = 0;
+
+// Variable to store the target position for the rotary actuator
+int targetRotaryPosition = 0;
+
+// Variable to store the return command for the rotary actuator
+int returnCommand = 0;
+
 void setup() {
+  // Configure the limit switch pins as inputs with pull-up resistors
   pinMode(BOTTOM_LIMIT_SWITCH, INPUT_PULLUP);
   pinMode(TOP_LIMIT_SWITCH, INPUT_PULLUP);
 
-  rotaryStepper.setMaxSpeed(MAX_SPEED);
-  rotaryStepper.setAcceleration(ACCELERATION);
-  rotaryStepper.setSpeed(SPEED);
+  // Set the maximum speed and acceleration for the linear actuator
+  linearActuator.setMaxSpeed(500);
+  linearActuator.setAcceleration(500);
+  linearActuator.setSpeed(400);
 
-  linearActuator.setMaxSpeed(MAX_SPEED);
-  linearActuator.setAcceleration(ACCELERATION);
-  linearActuator.setSpeed(SPEED);
+  // Set the maximum speed and acceleration for the rotary stepper motor
+  rotaryStepper.setMaxSpeed(500);
+  rotaryStepper.setAcceleration(50);
+  rotaryStepper.setSpeed(30);
 
+  // Initialize the serial communication
   Serial.begin(9600);
-
-  zeroPosition = rotaryStepper.currentPosition();
   
+  // Set initial position for the linear actuator
   linearActuator.moveTo(500);
-  while (linearActuator.distanceToGo() != 0){
+  while (linearActuator.distanceToGo() != 0) {
     linearActuator.run();
   }
-  int targetPosition0 = 10000;
-  linearActuator.moveTo(targetPosition0);
-  while (linearActuator.distanceToGo() != 0) {
-      if (digitalRead(TOP_LIMIT_SWITCH) == 1) {
-        // Stop the linear actuator when the top limit switch is pressed
-        linearActuator.stop();
-        linearActuator.setCurrentPosition(0);
-        linearActuator.moveTo(200);
-        while(linearActuator.distanceToGo() != 0){
-          linearActuator.run();
-        }
-      }
-      else if (digitalRead(BOTTOM_LIMIT_SWITCH) == 1) {
-      // Stop the linear actuator when the top limit switch is pressed
-        linearActuator.stop();
-        linearActuator.setCurrentPosition(0);  
-        linearActuator.moveTo(-1*targetPosition0); 
-      }
-      linearActuator.run();
-    }
+
+  // Set zero position for the rotary stepper motor
+  zeroPosition = rotaryStepper.currentPosition();
 }
 
 void loop() {
-  if (state == STATE_WAITING) {
-    // Read user input for positions
-    if (Serial.available() > 0) {
-      linPosition = Serial.parseInt();
-      targetRotaryPosition = Serial.parseInt();
-      // First, we move the linear actuator
-      state = STATE_MOVE_LINEAR;
-    }
-  } else if (state == STATE_MOVE_LINEAR) {
   // Check if the bottom limit switch is pressed
-  // read user input for linear position
-  Serial.println("Enter linear position (mm):");
-  while (Serial.available() == 0) {
-    // Wait for user input
+  if (digitalRead(BOTTOM_LIMIT_SWITCH) == 1) {
+    // Move linear actuator to position 0
+    linearActuator.stop();
+    linearActuator.setCurrentPosition(0); // Reset the actuator's position to 0
+    linearActuator.moveTo(-1 * targetLinearPosition);
   }
-  linPosition = Serial.parseFloat();
+  // Check if the top limit switch is pressed
+  else if (digitalRead(TOP_LIMIT_SWITCH) == 1) {
+    // Stop the linear actuator when the top limit switch is pressed
+    linearActuator.stop();
+    linearActuator.setCurrentPosition(0);
+    linearActuator.moveTo(200);
+    while (linearActuator.distanceToGo() != 0) {
+      linearActuator.run();
+    }
+  }
+  else {
+    // Read user input for the linear position
+    if (Serial.available()) {
+      linPosition = Serial.parseFloat();
 
-  // move linear actuator to the specified position
-  int targetPosition = linPosition * LINEAR_STEPS_PER_MM;
-  linearActuator.moveTo(targetPosition);
-  while (linearActuator.distanceToGo() != 0) {
-    if (digitalRead(BOTTOM_LIMIT_SWITCH) == 1) {
-      // Move linear actuator to position 0
-      linearActuator.stop();
-      linearActuator.setCurrentPosition(0); // Reset the actuator's position to 0
-      linearActuator.moveTo(-1*targetPosition);
+      // Move linear actuator to the specified position
+      targetLinearPosition = linPosition * LINEAR_STEPS_PER_MM;
+      linearActuator.moveTo(targetLinearPosition);
     }
-    else if (digitalRead(TOP_LIMIT_SWITCH) == 1) {
-      // Stop the linear actuator when the top limit switch is pressed
-      linearActuator.stop();
-      linearActuator.setCurrentPosition(0);
-      linearActuator.moveTo(200);
-      while(linearActuator.distanceToGo() != 0){
-        linearActuator.run();
-      }
-    }
+    // Run the linear actuator
     linearActuator.run();
   }
 
-  // print current position
-  Serial.print("Current linear position: ");
-  Serial.print(linearActuator.currentPosition() / LINEAR_STEPS_PER_MM);
-  Serial.println(" mm");
+  // Check if the linear actuator has reached the target position
+  if (linearActuator.distanceToGo() == 0) {
+    // Print current linear position
+    Serial.print("Current linear position: ");
+    Serial.print(linearActuator.currentPosition() / LINEAR_STEPS_PER_MM);
+    Serial.println(" mm");
 
-  // Send confirmation to Python
-  Serial.println("OK");
+    // Read user input for the target position of the rotary actuator
+    if (targetLinearPosition != 0) {
+      Serial.println("Enter target rotary position (degrees):");
+      while (Serial.available() == 0) {
+        // Wait for user input
+      }
+      targetRotaryPosition = Serial.parseInt();
 
-  while (Serial.available() > 0) {
-    linPosition = Serial.parseFloat();
-  }
-    // Then, we move the rotary actuator
-    if (linearActuator.distanceToGo() == 0) {
-      state = STATE_MOVE_ROTARY;
-    }
-  } else if (state == STATE_MOVE_ROTARY) {
-  if (targetRotaryPosition == 0) {
-    // Read user input for the target position
-    Serial.println("Enter target rotary position (degrees):");
-    while (Serial.available() == 0) {
-      // Wait for user input
-    }
-    targetRotaryPosition = Serial.parseInt();
+      // Limit the target position to a maximum of 360 degrees
+      if (targetRotaryPosition < -360) {
+        targetRotaryPosition = -360;
+      }
+      else if (targetRotaryPosition > 360) {
+        targetRotaryPosition = 360;
+      }
 
-    // Limit the target position to a maximum of 360 degrees
-    if (targetRotaryPosition < -360) {
-      targetRotaryPosition = -360;
-    } else if (targetRotaryPosition > 360) {
-      targetRotaryPosition = 360;
-    }
+      // Calculate the target step position based on the zero position
+      int targetStepPosition = (targetRotaryPosition * ROTARY_STEPS_PER_DEGREE) + zeroPosition;
 
-    // Calculate the target step position based on the zero position
-    int targetStepPosition = (targetRotaryPosition * ROTARY_STEPS_PER_DEGREE) + zeroPosition;
+      // Move the rotary stepper motor to the specified target position
+      rotaryStepper.moveTo(targetStepPosition);
 
-    // Move the rotary stepper motor to the specified target position
-    rotaryStepper.moveTo(targetStepPosition);
-
-    // Print target position
-    Serial.print("Target rotary position: ");
-    Serial.print(targetRotaryPosition);
-    Serial.println(" degrees");
-
-    // Send confirmation to Python
-    Serial.println("Position set successfully");
-  } else if (returnCommand == 0) {
-    // Read user input for the return command
-    Serial.println("Enter '0' to return to the original position:");
-    while (Serial.available() == 0) {
-      // Wait for user input
-    }
-    returnCommand = Serial.parseInt();
-
-    if (returnCommand == 0) {
-      // Move the rotary stepper motor back to the original position
-      rotaryStepper.moveTo(zeroPosition);
-
-      // Print original position
-      Serial.print("Returning to original position: ");
-      Serial.print(zeroPosition / ROTARY_STEPS_PER_DEGREE);
-      Serial.println(" degrees");
-
-      // Reset the target position and return command
-      targetRotaryPosition = 0;
-      returnCommand = -1;
-
-      // Send confirmation to Python
-      Serial.println("Returned to original position");
-    }
-  }
-
-  // Run the rotary stepper motor until it reaches the target position or returns to the original position
-  rotaryStepper.run();
-
-  // Check if the stepper has reached the target position or the original position
-  if (rotaryStepper.distanceToGo() == 0) {
-    if (targetRotaryPosition != 0) {
-      // Print current position after reaching the target position
-      Serial.print("Reached target rotary position: ");
+      // Print target position
+      Serial.print("Target rotary position: ");
       Serial.print(targetRotaryPosition);
       Serial.println(" degrees");
 
-      // Wait for the return command
-      targetRotaryPosition = 0;
-
       // Send confirmation to Python
-      Serial.println("Target position reached");
-    } else if (returnCommand == 0) {
-      // Print current position after returning to the original position
-      Serial.print("Returned to original position: ");
-      Serial.print(zeroPosition / ROTARY_STEPS_PER_DEGREE);
-      Serial.println(" degrees");
-
-      // Reset the return command
-      returnCommand = -1;
+      Serial.println("Position set successfully");
     }
-  }
-    // When it finishes, go back to the waiting state
+    else if (returnCommand == 0) {
+      // Read user input for the return command
+      Serial.println("Enter '0' to return to the original position:");
+      while (Serial.available() == 0) {
+        // Wait for user input
+      }
+      returnCommand = Serial.parseInt();
+
+      if (returnCommand == 0) {
+        // Move the rotary stepper motor back to the original position
+        rotaryStepper.moveTo(zeroPosition);
+
+        // Print original position
+        Serial.print("Returning to original position: ");
+        Serial.print(zeroPosition / ROTARY_STEPS_PER_DEGREE);
+        Serial.println(" degrees");
+
+        // Reset the target position and return command
+        targetRotaryPosition = 0;
+        returnCommand = -1;
+
+        // Send confirmation to Python
+        Serial.println("Returned to original position");
+      }
+    }
+
+    // Run the rotary stepper motor until it reaches the target position or returns to the original position
+    rotaryStepper.run();
+
+    // Check if the rotary stepper motor has reached the target position or the original position
     if (rotaryStepper.distanceToGo() == 0) {
-      state = STATE_WAITING;
+      if (targetRotaryPosition != 0) {
+        // Print current position after reaching the target position
+        Serial.print("Reached target rotary position: ");
+        Serial.print(targetRotaryPosition);
+        Serial.println(" degrees");
+
+        // Wait for the return command
+        targetRotaryPosition = 0;
+
+        // Send confirmation to Python
+        Serial.println("Target position reached");
+      }
+      else if (returnCommand == 0) {
+        // Print current position after returning to the original position
+        Serial.print("Returned to original position: ");
+        Serial.print(zeroPosition / ROTARY_STEPS_PER_DEGREE);
+        Serial.println(" degrees");
+
+        // Reset the return command
+        returnCommand = -1;
+      }
     }
   }
-
-  // Run the stepper motors
-  rotaryStepper.run();
-  linearActuator.run();
 }
