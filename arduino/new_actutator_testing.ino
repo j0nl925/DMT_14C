@@ -56,8 +56,8 @@ void setup() {
 
   // Set the maximum speed and acceleration for the linear actuator
   linearActuator.setMaxSpeed(500);
-  linearActuator.setAcceleration(500);
-  linearActuator.setSpeed(400);
+  linearActuator.setAcceleration(400);
+  linearActuator.setSpeed(499);
 
   // Set the maximum speed and acceleration for the rotary stepper motor
   rotaryStepper.setMaxSpeed(500);
@@ -73,11 +73,50 @@ void setup() {
     linearActuator.run();
   }
 
-  // Set zero position for the rotary stepper motor
+    while (linearActuator.distanceToGo() != 0){
+    linearActuator.run();
+  }
+  int targetPosition0 = 10000;
+  linearActuator.moveTo(targetPosition0);
+  while (linearActuator.distanceToGo() != 0) {
+      if (digitalRead(TOP_LIMIT_SWITCH) == 1) {
+        // Stop the linear actuator when the top limit switch is pressed
+        linearActuator.stop();
+        linearActuator.setCurrentPosition(0);
+        linearActuator.moveTo(200);
+        while(linearActuator.distanceToGo() != 0){
+          linearActuator.run();
+        }
+      }
+      else if (digitalRead(BOTTOM_LIMIT_SWITCH) == 1) {
+      // Stop the linear actuator when the top limit switch is pressed
+        linearActuator.stop();
+        linearActuator.setCurrentPosition(0);  
+        linearActuator.moveTo(-1*targetPosition0); 
+      }
+      linearActuator.run();
+    }
+
+      // Set zero position for the rotary stepper motor
   zeroPosition = rotaryStepper.currentPosition();
 }
 
 void loop() {
+
+  // Check if the bottom limit switch is pressed
+  // read user input for linear position
+  Serial.println("Enter linear position (mm):");
+  while (Serial.available() == 0) {
+    // Wait for user input
+  }
+  linPosition = Serial.parseInt();
+
+  // move linear actuator to the specified position
+  int targetLinearPosition = linPosition * LINEAR_STEPS_PER_MM;
+
+  linearActuator.moveTo(targetLinearPosition);
+  linearActuator.run();
+
   // Check if the bottom limit switch is pressed
   if (digitalRead(BOTTOM_LIMIT_SWITCH) == 1) {
     // Move linear actuator to position 0
@@ -95,18 +134,6 @@ void loop() {
       linearActuator.run();
     }
   }
-  else {
-    // Read user input for the linear position
-    if (Serial.available()) {
-      linPosition = Serial.parseFloat();
-
-      // Move linear actuator to the specified position
-      targetLinearPosition = linPosition * LINEAR_STEPS_PER_MM;
-      linearActuator.moveTo(targetLinearPosition);
-    }
-    // Run the linear actuator
-    linearActuator.run();
-  }
 
   // Check if the linear actuator has reached the target position
   if (linearActuator.distanceToGo() == 0) {
@@ -114,6 +141,8 @@ void loop() {
     Serial.print("Current linear position: ");
     Serial.print(linearActuator.currentPosition() / LINEAR_STEPS_PER_MM);
     Serial.println(" mm");
+
+    Serial.println("OK");
 
     // Read user input for the target position of the rotary actuator
     if (targetLinearPosition != 0) {
